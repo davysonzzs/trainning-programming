@@ -186,11 +186,6 @@ O objetivo é ir reduzindo com a prática até caber no estimado.
 Faça na ordem: 01 → 02 → 03 → 04 → 05 → 06.
 O 06 é o projeto final e usa conceitos de todos os anteriores.
 
-**Pedir promoção**
-Quando todos os 6 projetos estiverem `[ENTREGUE]`, acesse o **Claude Code**
-e diga: *"Terminei os projetos de Estagiário, pode avaliar?"*
-Ele vai verificar as entregas e criar os projetos do próximo nível.
-
 ---
 
 Boa sorte, Dev. O time está esperando sua primeira entrega.
