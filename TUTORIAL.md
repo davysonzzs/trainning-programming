@@ -187,9 +187,9 @@ Faça na ordem: 01 → 02 → 03 → 04 → 05 → 06.
 O 06 é o projeto final e usa conceitos de todos os anteriores.
 
 **Pedir promoção**
-Quando todos os 6 projetos estiverem `[ENTREGUE]`, abra o chat do **Claude Code**
+Quando todos os 6 projetos estiverem `[ENTREGUE]`, acesse o **Claude Code**
 e diga: *"Terminei os projetos de Estagiário, pode avaliar?"*
-O Claude Code revisa e cria os projetos do próximo nível.
+Ele vai verificar as entregas e criar os projetos do próximo nível.
 
 ---
 

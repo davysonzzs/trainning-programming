@@ -170,12 +170,12 @@ O que vai para o git é apenas o código que você implementa nos projetos.
 
 ---
 
-## Manutenção do sistema
+## Divisão de responsabilidades
 
-O **Claude Code** é responsável pela manutenção do jogo:
-criação de novos projetos, correção de bugs no sistema, promoções de nível.
-
-O **GitHub Copilot** é o QA no dia a dia: tira dúvidas, mas não codifica por você.
+| Ferramenta | Papel |
+|---|---|
+| **GitHub Copilot** | QA do dia a dia — tira dúvidas, explica erros, guia sem dar o código |
+| **Claude Code** | Manutenção do simulador — bugs no sistema, novos projetos, promoção de nível |
 
 ---
 

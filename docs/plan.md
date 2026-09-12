@@ -83,11 +83,19 @@ A trilha completa de estudos está em `.devtech/aulas.md`.
 
 ---
 
-## Papel do Claude (QA e avaliador)
+## Papel do Claude Code (manutenção do simulador)
 
-- **Durante o projeto:** Responder dúvidas técnicas, pode adicionar explicações no README do projeto
-- **Na entrega:** Revisar o código se o usuário compartilhar, avaliar qualidade
-- **Na promoção:** Verificar se o usuário está pronto e criar os projetos do próximo nível
+Claude Code é exclusivamente responsável pela manutenção do sistema DevTech:
+
+- **Bugs no simulador:** Corrigir problemas em `sprint.js`, `dev.js`, `projetos.js`
+- **Novos projetos:** Criar os projetos do próximo nível quando o usuário for promovido
+- **Promoção:** Verificar se todos os projetos do nível estão entregues e criar o próximo nível
+- **Não faz:** Responder dúvidas técnicas sobre os projetos, dar dicas de código, agir como QA
+
+## Papel do GitHub Copilot (QA do dia a dia)
+
+O Copilot é o QA — configurado via `.github/copilot-instructions.md`.
+Responde dúvidas técnicas durante os projetos, mas nunca escreve código.
 
 ---
 
