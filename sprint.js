@@ -1,7 +1,8 @@
 // sprint.js — DEVTECH SISTEMAS S.A. — Painel de Sprint
-const fs       = require('fs');
-const path     = require('path');
-const readline = require('readline');
+const fs             = require('fs');
+const path           = require('path');
+const readline       = require('readline');
+const { spawnSync }  = require('child_process');
 
 const DATA_DIR      = path.join(__dirname, '.devtech');
 const SPRINT_FILE   = path.join(DATA_DIR, 'sprint.json');
@@ -121,6 +122,7 @@ function loadSprint() {
   if (!('sessaoIniciadaEm' in data)) data.sessaoIniciadaEm = null;
   if (!('pausadoEm'        in data)) data.pausadoEm        = null;
   if (!('projetoAtual'     in data)) data.projetoAtual     = null;
+  if (!('estimativaHoras'  in data)) data.estimativaHoras  = 2;
   return data;
 }
 
@@ -393,11 +395,22 @@ function handleCommand(input, state) {
       if (!state.projetoAtual) return '  Nenhum projeto ativo. Use: projeto <pasta>';
       const marker = path.join(__dirname, 'projects', state.projetoAtual, '.concluido');
       if (fs.existsSync(marker)) return '  Projeto ja foi concluido anteriormente.';
+      const projetoPath = path.join(__dirname, 'projects', state.projetoAtual);
+      if (!fs.existsSync(path.join(projetoPath, 'node_modules'))) {
+        return `  Execute "npm install" na pasta do projeto antes de entregar.`;
+      }
+      const resultado = spawnSync('npm', ['test', '--', '--silent'], {
+        cwd: projetoPath, encoding: 'utf8', stdio: 'pipe',
+      });
+      if (resultado.status !== 0) {
+        pushMessage(NPC.qa, `Entrega bloqueada — testes falhando. Corrige antes de entregar.`);
+        return `  [QA] Entrega bloqueada: testes nao passaram. Rode "npm test" no projeto.`;
+      }
       fs.writeFileSync(marker, new Date().toISOString());
+      pushMessage(NPC.qa,   `Rodei a suite completa. Todos os testes passaram. Aprovado!`);
       pushMessage(NPC.lead, `Projeto concluido! Excelente trabalho, ${loadProgress().name}.`);
       pushMessage(NPC.pm,   `Entrega registrada. Proximo projeto disponivel no painel.`);
-      pushMessage(NPC.qa,   `Todos os testes passaram. Aprovado!`);
-      return `ENTREGUE! Use "node projetos.js" para ver seu progresso.`;
+      return `[ENTREGUE] Testes OK. Use "node projetos.js" para ver seu progresso.`;
     }
 
     case '':

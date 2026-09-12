@@ -134,7 +134,7 @@ function renderPainel() {
   if (concluidosGlobal === totalGlobal && totalGlobal > 0) {
     console.log('');
     console.log('  TODOS OS PROJETOS CONCLUIDOS!');
-    console.log('  Solicite sua promocao no chat do Claude.');
+    console.log('  Voce concluiu o nivel. O proximo nivel sera desbloqueado em breve.');
   } else {
     const sprint = loadSprint();
     if (sprint.projetoAtual) {

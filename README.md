@@ -27,17 +27,21 @@ node projetos.js
 
 # 4. Abra o painel de sprint
 node sprint.js
+
+# 5. Veja a trilha de estudos
+node aulas.js
 ```
 
 ---
 
-## As três telas
+## As quatro telas
 
 | Comando | O que é |
 |---|---|
 | `node sprint.js` | Painel de tarefas da sprint — onde você trabalha |
 | `node dev.js` | Sua ficha: nível, XP, salário e progresso |
 | `node projetos.js` | Quadro de missões — todos os projetos e status |
+| `node aulas.js` | Trilha de estudos — 14 fases do Estagiário ao Sênior III |
 
 ---
 
@@ -48,6 +52,7 @@ node sprint.js
 ├── sprint.js          ← painel de sprint (terminal interativo)
 ├── dev.js             ← ficha do desenvolvedor
 ├── projetos.js        ← quadro de projetos/missões
+├── aulas.js           ← trilha de estudos (14 fases)
 │
 ├── projects/
 │   └── estagiario/    ← projetos do nível atual

@@ -71,6 +71,20 @@ npm test
 
 ---
 
+### Dicas (tente sozinho antes de usar)
+
+**`classificarNota`** — Cuidado com os limites: 5.0 é `'recuperacao'` ou `'aprovado'`? Verifique os intervalos da especificação com atenção.
+
+**`calcularMedia`** — Você precisa de dois valores: a soma total e a quantidade de elementos. E quando o array está vazio?
+
+**`avaliarFuncionario`** — Você já tem `calcularMedia` e `classificarNota`. A função precisa chamar as duas e montar o objeto de retorno. O que define se `aprovado` é `true`?
+
+**`listarAprovados`** — Percorra o array e filtre. Que propriedade indica se o funcionário foi aprovado?
+
+**`melhorFuncionario`** — Como você encontra o maior valor num array sem usar `.sort()`? Pense num acumulador que guarda o "campeão atual".
+
+---
+
 ### Tarefas sugeridas para o Sprint
 
 ```

@@ -80,6 +80,20 @@ npm test
 
 ---
 
+### Dicas (tente sozinho antes de usar)
+
+**`calcularJuros`** — Se o valor cresce a cada mês sobre o resultado do mês anterior (não sobre o original), qual operador matemático faz isso acumular ao longo dos meses?
+
+**`calcularDesconto`** — Quanto é X% de um valor? Você está subtraindo o desconto do valor original?
+
+**`calcularParcelas`** — Divisão simples. Mas o que `Math.round` faz com casas decimais?
+
+**`calcularImposto`** — Você está retornando o valor do imposto, não o total com imposto. E para tipo inválido, o que `throw new Error(...)` faz?
+
+**`resumoCompra`** — Você já implementou as funções anteriores. Use-as. Qual é a ordem: primeiro desconto, depois imposto, ou vice-versa? Leia a especificação do `total`.
+
+---
+
 ### Tarefas sugeridas para o Sprint
 
 No `sprint.js`, use `sprint "Estágio — Calculadora Financeira"` e adicione:

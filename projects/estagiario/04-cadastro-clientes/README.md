@@ -76,6 +76,20 @@ npm test
 
 ---
 
+### Dicas (tente sozinho antes de usar)
+
+**Imutabilidade — a regra central** — Se você usar `clientes.push(...)` ou `clientes[i].ativo = false`, você está mutando. O teste vai pegar isso. Sempre retorne um novo array/objeto.
+
+**`adicionar`** — Como você cria um novo array com todos os elementos de um existente mais um novo? Spread (`[...clientes, novoCliente]`) é a forma mais direta.
+
+**`atualizar`** — Use `.map()`. Para o cliente com o `id` certo, retorne um novo objeto mesclando as propriedades antigas com as novas (`{ ...cliente, ...dados }`). Para os outros, retorne o cliente sem mudança.
+
+**`desativar`** — Mesma lógica do `atualizar`, mas só muda uma propriedade: `ativo: false`.
+
+**`buscarPorEmail`** — "Case-insensitive" significa que `'ANA@DEV.COM'` deve encontrar `'ana@dev.com'`. Como você normaliza strings para comparar?
+
+---
+
 ### Tarefas sugeridas para o Sprint
 
 ```

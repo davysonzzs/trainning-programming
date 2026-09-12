@@ -169,6 +169,17 @@ function handleCommand(input) {
 
 // ── Loop principal ────────────────────────────────────────────────────────────
 
+// Suporte a: node dev.js --name "Seu Nome"
+const nameIdx = process.argv.indexOf('--name');
+if (nameIdx !== -1 && process.argv[nameIdx + 1]) {
+  const p = load();
+  p.name  = process.argv[nameIdx + 1];
+  save(p);
+  console.log(`\n  ✅ Nome registrado: ${p.name}`);
+  console.log(`  Rode "node dev.js" para ver sua ficha.\n`);
+  process.exit(0);
+}
+
 renderFicha(null);
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

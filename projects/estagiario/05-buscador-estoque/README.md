@@ -68,6 +68,18 @@ npm test
 
 ---
 
+### Dicas (tente sozinho antes de usar)
+
+**`buscaLinear`** — Use `for` ou `while`. A cada iteração compare o nome do produto com o parâmetro (ambos em lowercase). Quando encontrar, retorne o produto. Se terminar sem encontrar, retorne `null`.
+
+**`buscaPorFaixaDePreco`** — Duas condições precisam ser verdadeiras ao mesmo tempo: `preco >= min` E `preco <= max`. Que método de array retorna um subconjunto baseado numa condição?
+
+**`ordenarPorPreco` / `ordenarPorNome`** — `.sort()` modifica o array original. Como você ordena sem modificar? Dica: faça uma cópia primeiro. Para strings, pesquise o que `localeCompare` faz.
+
+**`filtrarComEstoque`** — Uma condição só: `estoque > 0`. Qual método de array é feito exatamente para isso?
+
+---
+
 ### Tarefas sugeridas para o Sprint
 
 ```

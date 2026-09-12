@@ -84,6 +84,20 @@ npm test
 
 ---
 
+### Dicas (tente sozinho antes de usar)
+
+**`calcularFaturamento`** — Soma de todos os `valor`. Você já fez isso antes em projetos anteriores. Array vazio deve retornar `0`.
+
+**`ticketMedio`** — Faturamento total dividido pela quantidade de vendas. Atenção: se não houver vendas, não divida por zero.
+
+**`calcularCrescimento`** — A fórmula está na especificação. Implemente exatamente como está. Caso especial: `mesAnterior = 0` retorna `0` (não tente dividir).
+
+**`top3Vendedores`** — Este é o mais complexo. Pense em etapas: (1) como você agrupa vendas pelo nome do vendedor e soma os valores de cada um? (2) como converte esse agrupamento num array? (3) como ordena do maior para o menor? (4) como pega só os 3 primeiros?
+
+**`relatorioCompleto`** — Monte o objeto usando as funções que você já implementou neste arquivo. `melhorVendedor` é o `vendedor` do primeiro elemento de `top3Vendedores`.
+
+---
+
 ### Tarefas sugeridas para o Sprint
 
 ```

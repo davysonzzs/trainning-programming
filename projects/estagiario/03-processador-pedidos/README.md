@@ -70,6 +70,20 @@ npm test
 
 ---
 
+### Dicas (tente sozinho antes de usar)
+
+**`contarItens`** — Você não quer contar quantos itens existem no array — quer somar o campo `quantidade` de cada um. São coisas diferentes.
+
+**`calcularTotal`** — Para cada item: `preco * quantidade`. Acumule esses valores. Você já fez algo parecido em `calcularFaturamento`?
+
+**`filtrarPorStatus`** — Percorra o array e retorne somente os pedidos cujo `status` é igual ao parâmetro recebido.
+
+**`agruparPorStatus`** — Comece criando o objeto com as 4 chaves já definidas e arrays vazios. Depois percorra os pedidos e empurre cada um para a chave correta.
+
+**`processarLote`** — Mapeie o array. Para cada pedido, retorne um novo objeto com todas as propriedades do pedido original, mais `total` e `quantidadeItens`. Spread (`...`) pode ajudar a copiar as propriedades.
+
+---
+
 ### Tarefas sugeridas para o Sprint
 
 ```
