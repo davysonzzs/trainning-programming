@@ -1,0 +1,11 @@
+{
+  "name": "02-sistema-reducers",
+  "version": "1.0.0",
+  "description": "DevTech Sistemas — Junior III",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

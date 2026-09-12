@@ -1,0 +1,11 @@
+{
+  "name": "01-gerenciador-estado",
+  "version": "1.0.0",
+  "description": "DevTech Sistemas — Junior III",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

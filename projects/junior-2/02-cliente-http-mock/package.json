@@ -1,0 +1,11 @@
+{
+  "name": "02-cliente-http-mock",
+  "version": "1.0.0",
+  "description": "DevTech Sistemas — Junior II",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

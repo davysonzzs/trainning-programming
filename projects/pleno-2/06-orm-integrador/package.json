@@ -1,0 +1,7 @@
+{
+  "name": "06-orm-integrador",
+  "version": "1.0.0",
+  "description": "DevTech Sistemas — Pleno II",
+  "scripts": { "test": "jest" },
+  "devDependencies": { "jest": "^29.7.0" }
+}
