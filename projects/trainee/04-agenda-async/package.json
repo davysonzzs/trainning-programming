@@ -1,0 +1,7 @@
+{
+  "name": "04-agenda-async",
+  "version": "1.0.0",
+  "description": "DevTech Sistemas — Trainee",
+  "scripts": { "test": "jest" },
+  "devDependencies": { "jest": "^29.7.0" }
+}

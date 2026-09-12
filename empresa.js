@@ -7,9 +7,25 @@ const readline = require('readline');
 const DATA_DIR      = path.join(__dirname, '.devtech');
 const SPRINT_FILE   = path.join(DATA_DIR, 'sprint.json');
 const PROGRESS_FILE = path.join(DATA_DIR, 'progress.json');
-const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+// ── ANSI ──────────────────────────────────────────────────────────────────────
+
+const A = {
+  clear:    '\x1b[2J\x1b[H',
+  hideCursor: '\x1b[?25l',
+  showCursor: '\x1b[?25h',
+  bold:     '\x1b[1m',
+  dim:      '\x1b[2m',
+  reset:    '\x1b[0m',
+  green:    '\x1b[32m',
+  yellow:   '\x1b[33m',
+  red:      '\x1b[31m',
+  cyan:     '\x1b[36m',
+  white:    '\x1b[37m',
+  gray:     '\x1b[90m',
+};
 
 // ── NPCs ──────────────────────────────────────────────────────────────────────
 
@@ -21,9 +37,7 @@ const NPC = {
   ops:  { nome: 'Sistema DevOps',     tag: '[OPS] ' },
 };
 
-// ── Feed de atividades ─────────────────────────────────────────────────────────
-
-const ATIVIDADES_ALEATORIAS = [
+const ATIVIDADES = [
   [NPC.qa,   'Regressao passando em staging. Pode subir pra prod quando quiser.'],
   [NPC.dev,  'Alguem sabe onde fica o arquivo de config do banco de dev?'],
   [NPC.pm,   'Reuniao de refinamento amanha as 10h. Me confirma presenca.'],
@@ -41,52 +55,117 @@ const ATIVIDADES_ALEATORIAS = [
   [NPC.dev,  'Alguem mais com lentidao no npm install? Demorando 4 min aqui.'],
   [NPC.lead, 'Lembrete: sprint review sexta as 16h. Prepara um resumo do que fez.'],
   [NPC.ops,  'Backup do banco de dev concluido com sucesso.'],
-  [NPC.pm,   'Novo requisito do cliente chegou. Vou jogar no backlog pra proxima sprint.'],
+  [NPC.pm,   'Novo requisito chegou. Vou jogar no backlog pra proxima sprint.'],
   [NPC.dev,  'Finalmente entendi closures. So demorou umas 3 horas hahaha.'],
   [NPC.qa,   'Todos os testes de smoke passando. Ambiente saudavel.'],
   [NPC.lead, 'Codigo limpo nao e o que funciona. E o que qualquer dev consegue entender.'],
-  [NPC.ops,  'Alerta: disco de logs em 78% de capacidade. Limpando entradas antigas.'],
+  [NPC.ops,  'Alerta: disco de logs em 78%. Limpando entradas antigas.'],
   [NPC.dev,  'Quem criou a funcao "processarCoisa"? Preciso entender o que ela faz.'],
   [NPC.pm,   'Burndown olhando bem essa sprint. Bom ritmo, galera.'],
-  [NPC.lead, 'Evitando magic numbers no codigo, por favor. Use constantes com nomes.'],
+  [NPC.lead, 'Evitando magic numbers no codigo, por favor. Use constantes.'],
   [NPC.qa,   'Cobertura de testes subiu para 74%. Meta e 80% ate fim do mes.'],
-  [NPC.ops,  'Certificado SSL renovado automaticamente. Nenhuma acao necessaria.'],
+  [NPC.ops,  'Certificado SSL renovado automaticamente.'],
   [NPC.dev,  'Dica: .find() retorna o elemento, .findIndex() retorna a posicao.'],
   [NPC.lead, 'PR sem descricao vai ser devolvido. Explica o que fez e por que.'],
   [NPC.pm,   'Aprovacao do cliente no mockup. Podemos comecar a implementar.'],
 ];
 
 const INCIDENTES = [
-  [NPC.ops,  '⚠  ALERTA: latencia do servico de pagamento acima do normal (320ms avg).'],
-  [NPC.qa,   '⚠  Falha intermitente no modulo de relatorios. Investigando.'],
-  [NPC.ops,  '⚠  Pico de memoria no servidor de staging. Monitorando.'],
-  [NPC.lead, '⚠  Dependencia desatualizada com vulnerabilidade critica. Abrindo PR.'],
-  [NPC.ops,  '⚠  Job de sincronizacao falhou. Reexecutando automaticamente.'],
+  [NPC.ops,  'ALERTA: latencia do servico de pagamento acima do normal (320ms avg).'],
+  [NPC.qa,   'ALERTA: Falha intermitente no modulo de relatorios. Investigando.'],
+  [NPC.ops,  'ALERTA: Pico de memoria no servidor de staging. Monitorando.'],
+  [NPC.lead, 'ALERTA: Dependencia desatualizada com vulnerabilidade critica. Abrindo PR.'],
+  [NPC.ops,  'ALERTA: Job de sincronizacao falhou. Reexecutando automaticamente.'],
 ];
 
 const RESOLUCOES = [
-  [NPC.ops,  '✓  Latencia normalizada. Causa: query sem indice. Indice adicionado.'],
-  [NPC.qa,   '✓  Falha no relatorio resolvida. Era problema de timezone.'],
-  [NPC.ops,  '✓  Memoria estabilizada apos restart do worker.'],
-  [NPC.lead, '✓  PR de atualizacao de dependencia mergeado.'],
-  [NPC.ops,  '✓  Job de sincronizacao concluido com sucesso na segunda tentativa.'],
+  [NPC.ops,  'RESOLVIDO: Latencia normalizada. Causa: query sem indice. Indice adicionado.'],
+  [NPC.qa,   'RESOLVIDO: Falha no relatorio resolvida. Era problema de timezone.'],
+  [NPC.ops,  'RESOLVIDO: Memoria estabilizada apos restart do worker.'],
+  [NPC.lead, 'RESOLVIDO: PR de atualizacao de dependencia mergeado.'],
+  [NPC.ops,  'RESOLVIDO: Job de sincronizacao concluido com sucesso na segunda tentativa.'],
 ];
 
-// ── Estado interno ─────────────────────────────────────────────────────────────
+// ── Estado ────────────────────────────────────────────────────────────────────
 
 let feed = [];
-let incidenteAtivo = null;
-let incidenteIdx   = null;
-let xpAnterior     = 0;
-let sprintAnterior = null;
-let tarefasAnteror = 0;
+let frame = 0;
+let tickAtividade = 0;
+let tickIncidente = 0;
+let incidenteAtivo = false;
+let incidenteIdx = null;
+let xpAnterior = -1;
+let sprintAnteriorNome = null;
+let tasksDoneAnterior = 0;
 
-const MAX_FEED = 12;
+// Métricas animadas
+let metricas = { api: 62, auth: 44, banco: 38, cache: 71, worker: 55 };
+let tickMetrica = 0;
 
-function pushFeed(npc, msg, tipo = 'normal') {
-  const hora = horaAtual();
-  feed.push({ hora, tag: npc.tag, nome: npc.nome, msg, tipo });
-  if (feed.length > MAX_FEED) feed.shift();
+// Sparkline de tráfego
+const SPARK_CHARS = ['▁','▂','▃','▄','▅','▆','▇','█'];
+let sparkData = Array.from({ length: 18 }, () => Math.floor(Math.random() * 6) + 1);
+let reqPs = 847;
+let latencia = 23;
+
+// ── Spinner ────────────────────────────────────────────────────────────────────
+
+const SPIN = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+function spin(offset = 0) { return SPIN[(frame + offset) % SPIN.length]; }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const W     = 76;
+const INNER = W - 4;
+const LINE  = '═'.repeat(W - 2);
+const DIV   = '─'.repeat(W - 2);
+
+function pad(str, n) {
+  const s = String(str);
+  return s.length >= n ? s.slice(0, n) : s + ' '.repeat(n - s.length);
+}
+
+function center(str) {
+  const lp = Math.floor((INNER - str.length) / 2);
+  const rp  = INNER - str.length - lp;
+  return `║  ${' '.repeat(Math.max(0,lp))}${str}${' '.repeat(Math.max(0,rp))}  ║`;
+}
+
+function row(str) {
+  return `║  ${pad(str, INNER)}  ║`;
+}
+
+function barraMetrica(valor, tamanho = 12) {
+  const filled = Math.round((Math.min(100, Math.max(0, valor)) / 100) * tamanho);
+  const cor = valor > 80 ? A.red : valor > 60 ? A.yellow : A.green;
+  return `${cor}${'█'.repeat(filled)}${A.gray}${'░'.repeat(tamanho - filled)}${A.reset}`;
+}
+
+function sparkline() {
+  return sparkData.map(v => {
+    const idx = Math.min(7, Math.max(0, Math.round((v / 10) * 7)));
+    const cor = v > 7 ? A.yellow : A.cyan;
+    return `${cor}${SPARK_CHARS[idx]}${A.reset}`;
+  }).join('');
+}
+
+function horaAtual() {
+  const n = new Date();
+  return [n.getHours(), n.getMinutes(), n.getSeconds()]
+    .map(x => x.toString().padStart(2, '0')).join(':');
+}
+
+function dataAtual() {
+  return new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+  });
+}
+
+function formatarTempo(ms) {
+  if (!ms || ms <= 0) return '0m';
+  const m = Math.floor(ms / 60000);
+  const h = Math.floor(m / 60);
+  return h > 0 ? `${h}h ${(m%60).toString().padStart(2,'0')}m` : `${m}m`;
 }
 
 // ── Leitura de dados ──────────────────────────────────────────────────────────
@@ -118,240 +197,205 @@ function contarProjetos() {
   return { concluidos: c, total: t };
 }
 
-// ── Tempo ─────────────────────────────────────────────────────────────────────
+// ── Feed ──────────────────────────────────────────────────────────────────────
 
-function horaAtual() {
-  const n = new Date();
-  return `${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}:${n.getSeconds().toString().padStart(2,'0')}`;
-}
+const MAX_FEED = 8;
 
-function dataAtual() {
-  const n = new Date();
-  return n.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-}
-
-function tempoAtivo(state) {
-  if (!state) return 0;
-  let total = state.tempoAtivoMs || 0;
-  if (state.sessaoIniciadaEm) total += Date.now() - new Date(state.sessaoIniciadaEm).getTime();
-  return total;
-}
-
-function formatarTempo(ms) {
-  if (ms <= 0) return '0m';
-  const m = Math.floor(ms / 60000);
-  const h = Math.floor(m / 60);
-  return h > 0 ? `${h}h ${(m % 60).toString().padStart(2,'0')}m` : `${m}m`;
-}
-
-// ── Métricas fake dos sistemas ─────────────────────────────────────────────────
-
-function metricasCPU() {
-  // Simula carga variando levemente em torno de um valor base
-  const bases = [23, 41, 18, 67];
-  return bases.map(b => Math.max(1, Math.min(99, b + Math.floor((Math.random() - 0.5) * 8))));
-}
-
-function metricasMem() {
-  return Math.floor(62 + (Math.random() - 0.5) * 6);
-}
-
-function barraMetrica(valor, max = 100, tamanho = 10) {
-  const filled = Math.round((valor / max) * tamanho);
-  return `[${'█'.repeat(filled)}${'░'.repeat(tamanho - filled)}] ${valor}%`;
+function pushFeed(npc, msg, tipo = 'normal') {
+  feed.push({ hora: horaAtual(), tag: npc.tag, nome: npc.nome, msg, tipo });
+  if (feed.length > MAX_FEED) feed.shift();
 }
 
 // ── Renderização ──────────────────────────────────────────────────────────────
 
-const W   = 76;
-const LIN = '═'.repeat(W - 2);
-const DIV = '─'.repeat(W - 2);
+function buildFrame() {
+  const p      = loadProgress();
+  const sprint = loadSprint();
+  const projs  = contarProjetos();
+  const hora   = `${A.bold}${A.cyan}${horaAtual()}${A.reset}`;
+  const data   = dataAtual();
 
-function pad(str, n) {
-  const s = String(str);
-  return s.length >= n ? s.slice(0, n) : s + ' '.repeat(n - s.length);
-}
-
-function centro(str) {
-  const lp = Math.floor((W - 2 - str.length) / 2);
-  const rp = W - 2 - str.length - lp;
-  return `║ ${' '.repeat(Math.max(0,lp))}${str}${' '.repeat(Math.max(0,rp))} ║`;
-}
-
-function linha(str) {
-  return `║ ${pad(str, W - 4)} ║`;
-}
-
-function renderizar() {
-  const p       = loadProgress();
-  const sprint  = loadSprint();
-  const projs   = contarProjetos();
-  const cpu     = metricasCPU();
-  const mem     = metricasMem();
-  const hora    = horaAtual();
-  const data    = dataAtual();
-
-  // Info da sprint
   const sprintNome    = sprint?.sprint || '—';
-  const sprintProjeto = sprint?.projetoAtual || '—';
+  const sprintProjeto = sprint?.projetoAtual ? `projects/${sprint.projetoAtual}` : '—';
   const sprintPausado = sprint ? !sprint.sessaoIniciadaEm : true;
-  const sprintTempo   = sprint ? tempoAtivo(sprint) : 0;
+  const sprintTempo   = sprint ? (() => {
+    let t = sprint.tempoAtivoMs || 0;
+    if (sprint.sessaoIniciadaEm) t += Date.now() - new Date(sprint.sessaoIniciadaEm).getTime();
+    return t;
+  })() : 0;
   const sprintEst     = sprint?.estimativaHoras || 2;
-  const tarefasDone   = sprint?.tasks?.filter(t => t.status === 'done').length || 0;
-  const tarefasTot    = sprint?.tasks?.length || 0;
+  const tasksDone     = sprint?.tasks?.filter(t => t.status === 'done').length || 0;
+  const tasksTot      = sprint?.tasks?.length || 0;
+  const statusSprint  = sprintPausado
+    ? `${A.yellow}PAUSADA${A.reset}`
+    : `${A.green}EM ANDAMENTO${A.reset}`;
 
-  console.clear();
+  let out = A.clear;
 
   // Header
-  console.log(`╔${LIN}╗`);
-  console.log(centro('DEVTECH SISTEMAS S.A.'));
-  console.log(centro('── Sistema Corporativo ──'));
-  console.log(`╠${LIN}╣`);
-  console.log(linha(`  ${data}                                           ${hora}`));
-  console.log(linha(`  Dev: ${p.name}   │   XP: ${p.xp}   │   Projetos: ${projs.concluidos}/${projs.total} entregues`));
-  console.log(`╠${LIN}╣`);
+  out += `╔${LINE}╗\n`;
+  out += center(`${A.bold}DEVTECH SISTEMAS S.A.${A.reset}`);
+  out += '\n';
+  out += center(`${A.gray}── Sistema Corporativo ──${A.reset}`);
+  out += '\n';
+  out += `╠${LINE}╣\n`;
+  out += row(`${A.gray}${data}${A.reset}    ${hora}`);
+  out += '\n';
+  out += row(`Dev: ${A.bold}${p.name}${A.reset}   │   XP: ${A.cyan}${p.xp}${A.reset}   │   Projetos: ${A.green}${projs.concluidos}/${projs.total}${A.reset} entregues`);
+  out += '\n';
 
-  // Status sistemas
-  console.log(linha('  STATUS DOS SISTEMAS'));
-  console.log(`╠${LIN}╣`);
-  console.log(linha(`  API Gateway    ${barraMetrica(cpu[0])}    Banco de Dados  ${barraMetrica(mem)}`));
-  console.log(linha(`  Auth Service   ${barraMetrica(cpu[1])}    Worker Pool     ${barraMetrica(cpu[2])}`));
-  console.log(linha(`  Cache Redis    ${barraMetrica(cpu[3])}    Staging Env     [██████████] OK `));
-  console.log(`╠${LIN}╣`);
+  // Sistemas
+  out += `╠${LINE}╣\n`;
+  out += row(`${A.bold}STATUS DOS SISTEMAS${A.reset}`);
+  out += '\n';
+  out += `╠${LINE}╣\n`;
 
-  // Sprint ativa
-  console.log(linha('  SPRINT ATIVA'));
-  console.log(`╠${LIN}╣`);
+  const s = (o) => `${A.cyan}${spin(o)}${A.reset}`;
+  const pct = (v) => `${String(v).padStart(3)}%`;
+
+  out += row(`${s(0)} API Gateway  ${barraMetrica(metricas.api)}  ${pct(metricas.api)}   ${s(3)} Auth Service  ${barraMetrica(metricas.auth)}  ${pct(metricas.auth)}`);
+  out += '\n';
+  out += row(`${s(1)} Banco Dados  ${barraMetrica(metricas.banco)}  ${pct(metricas.banco)}   ${s(4)} Cache Redis   ${barraMetrica(metricas.cache)}  ${pct(metricas.cache)}`);
+  out += '\n';
+  out += row(`${s(2)} Worker Pool  ${barraMetrica(metricas.worker)}  ${pct(metricas.worker)}   ${s(5)} Staging Env  ${A.green}██████████${A.reset}   OK`);
+  out += '\n';
+
+  // Sparkline
+  out += `╠${LINE}╣\n`;
+  out += row(`${A.gray}Tráfego:${A.reset}  ${sparkline()}  ${A.cyan}${reqPs} req/s${A.reset}   ${A.gray}Latência: ${latencia}ms${A.reset}`);
+  out += '\n';
+
+  // Sprint
+  out += `╠${LINE}╣\n`;
+  out += row(`${A.bold}SPRINT ATIVA${A.reset}`);
+  out += '\n';
+  out += `╠${LINE}╣\n`;
+
   if (sprint) {
-    const statusSprint = sprintPausado ? 'PAUSADA' : 'EM ANDAMENTO';
-    console.log(linha(`  ${sprintNome}  [${statusSprint}]`));
-    console.log(linha(`  Projeto: ${sprintProjeto}`));
-    console.log(linha(`  Tempo: ${formatarTempo(sprintTempo)} / ${sprintEst}h   Tarefas: ${tarefasDone}/${tarefasTot} concluidas`));
+    out += row(`${A.bold}${sprintNome}${A.reset}  [${statusSprint}]`);
+    out += '\n';
+    out += row(`${A.gray}Projeto:${A.reset} ${sprintProjeto}`);
+    out += '\n';
+    out += row(`${A.gray}Tempo:${A.reset} ${formatarTempo(sprintTempo)} / ${sprintEst}h   ${A.gray}Tarefas:${A.reset} ${A.green}${tasksDone}${A.reset}/${tasksTot} concluidas`);
+    out += '\n';
   } else {
-    console.log(linha('  Nenhuma sprint ativa. Execute node sprint.js para iniciar.'));
-  }
-  console.log(`╠${LIN}╣`);
-
-  // Feed de atividades
-  console.log(linha('  ATIVIDADES DA EQUIPE'));
-  console.log(`╠${LIN}╣`);
-
-  const linhasFeed = feed.length > 0 ? feed : [
-    { hora: hora, tag: NPC.ops.tag, nome: NPC.ops.nome, msg: 'Todos os sistemas operacionais. Aguardando atividades.', tipo: 'normal' }
-  ];
-
-  for (const item of linhasFeed.slice(-8)) {
-    const cor   = item.tipo === 'alerta' ? '⚠ ' : item.tipo === 'ok' ? '✓ ' : '  ';
-    const linha_ = `${cor}${item.hora}  ${item.tag}  ${item.msg}`;
-    console.log(linha(linha_));
+    out += row(`${A.gray}Nenhuma sprint ativa. Execute node sprint.js para iniciar.${A.reset}`);
+    out += '\n';
+    out += row('');
+    out += '\n';
+    out += row('');
+    out += '\n';
   }
 
-  // Padding para manter altura constante
-  for (let i = linhasFeed.slice(-8).length; i < 8; i++) {
-    console.log(linha(''));
+  // Feed
+  out += `╠${LINE}╣\n`;
+  out += row(`${A.bold}ATIVIDADES DA EQUIPE${A.reset}`);
+  out += '\n';
+  out += `╠${LINE}╣\n`;
+
+  const feedExibir = feed.length > 0 ? feed : [{
+    hora: horaAtual(), tag: NPC.ops.tag, nome: NPC.ops.nome,
+    msg: 'Todos os sistemas operacionais. Aguardando atividades.', tipo: 'ok',
+  }];
+
+  for (const item of feedExibir.slice(-MAX_FEED)) {
+    let cor = A.reset;
+    let prefixo = ' ';
+    if (item.tipo === 'alerta') { cor = A.yellow; prefixo = '⚠'; }
+    else if (item.tipo === 'ok') { cor = A.green;  prefixo = '✓'; }
+
+    const linha = `${prefixo} ${A.gray}${item.hora}${A.reset}  ${cor}${item.tag}${A.reset}  ${item.msg}`;
+    out += row(linha);
+    out += '\n';
   }
 
-  console.log(`╚${LIN}╝`);
-  console.log('');
-  console.log('  Deixe este terminal aberto enquanto trabalha.   [Ctrl+C para sair]');
-  console.log('');
+  // Padding
+  for (let i = feedExibir.slice(-MAX_FEED).length; i < MAX_FEED; i++) {
+    out += row('');
+    out += '\n';
+  }
+
+  out += `╚${LINE}╝\n`;
+  out += `\n  ${A.gray}Deixe este terminal aberto enquanto trabalha.   [Ctrl+C para sair]${A.reset}\n`;
+
+  return out;
 }
 
-// ── Boot sequence ──────────────────────────────────────────────────────────────
+// ── Atualização de estado ──────────────────────────────────────────────────────
 
-function boot() {
-  const etapas = [
-    '  Iniciando DevTech Sistemas S.A...',
-    '  Carregando modulos do sistema...',
-    '  Conectando ao banco de dados...',
-    '  Verificando estado da sprint...',
-    '  Sincronizando feed da equipe...',
-    '  Sistema pronto.',
-    '',
-  ];
-
-  return new Promise(resolve => {
-    console.clear();
-    console.log('');
-    console.log('  ██████╗ ███████╗██╗   ██╗████████╗███████╗ ██████╗██╗  ██╗');
-    console.log('  ██╔══██╗██╔════╝██║   ██║╚══██╔══╝██╔════╝██╔════╝██║  ██║');
-    console.log('  ██║  ██║█████╗  ██║   ██║   ██║   █████╗  ██║     ███████║');
-    console.log('  ██║  ██║██╔══╝  ╚██╗ ██╔╝   ██║   ██╔══╝  ██║     ██╔══██║');
-    console.log('  ██████╔╝███████╗ ╚████╔╝    ██║   ███████╗╚██████╗██║  ██║');
-    console.log('  ╚═════╝ ╚══════╝  ╚═══╝     ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝');
-    console.log('');
-    console.log('  SISTEMAS S.A. — Plataforma Corporativa v2.4.1');
-    console.log('  ─────────────────────────────────────────────');
-    console.log('');
-
-    let i = 0;
-    const iv = setInterval(() => {
-      if (i < etapas.length) {
-        console.log(etapas[i]);
-        i++;
-      } else {
-        clearInterval(iv);
-        setTimeout(resolve, 400);
-      }
-    }, 280);
-  });
+function atualizarMetricas() {
+  for (const k of Object.keys(metricas)) {
+    const delta = Math.floor((Math.random() - 0.5) * 6);
+    metricas[k] = Math.max(5, Math.min(95, metricas[k] + delta));
+  }
 }
 
-// ── Monitoramento de mudanças ──────────────────────────────────────────────────
+function atualizarSparkline() {
+  // Smooth random walk
+  const last = sparkData[sparkData.length - 1];
+  const next = Math.max(1, Math.min(10, last + Math.floor((Math.random() - 0.5) * 3)));
+  sparkData.shift();
+  sparkData.push(next);
+  reqPs   = Math.max(200, Math.min(2000, reqPs + Math.floor((Math.random() - 0.5) * 80)));
+  latencia = Math.max(5, Math.min(150, latencia + Math.floor((Math.random() - 0.5) * 6)));
+}
 
 function verificarMudancas() {
   const p      = loadProgress();
   const sprint = loadSprint();
 
-  // XP ganho
-  if (p.xp > xpAnterior && xpAnterior > 0) {
+  if (xpAnterior >= 0 && p.xp > xpAnterior) {
     const ganho = p.xp - xpAnterior;
     pushFeed(NPC.lead, `${p.name} ganhou +${ganho} XP! Total: ${p.xp} XP.`, 'ok');
   }
   xpAnterior = p.xp;
 
-  // Mudança de sprint
-  if (sprint && sprint.sprint !== sprintAnterior && sprintAnterior !== null) {
-    pushFeed(NPC.pm, `Nova sprint iniciada: "${sprint.sprint}". Foco nas entregas!`);
-  }
-  if (sprint) sprintAnterior = sprint.sprint;
-
-  // Tarefas concluidas
   if (sprint) {
-    const done = sprint.tasks?.filter(t => t.status === 'done').length || 0;
-    if (done > tarefasDone && tarefasDone >= 0) {
-      pushFeed(NPC.qa, `Tarefa concluida na sprint. ${done}/${sprint.tasks.length} feitas.`, 'ok');
+    if (sprintAnteriorNome !== null && sprint.sprint !== sprintAnteriorNome) {
+      pushFeed(NPC.pm, `Nova sprint iniciada: "${sprint.sprint}". Foco nas entregas!`);
     }
-    tarefasDone = done;
+    sprintAnteriorNome = sprint.sprint;
+
+    const done = sprint.tasks?.filter(t => t.status === 'done').length || 0;
+    if (done > tasksDoneAnterior) {
+      pushFeed(NPC.qa, `Tarefa concluida! ${done}/${sprint.tasks.length} na sprint.`, 'ok');
+    }
+    tasksDoneAnterior = done;
   }
 }
 
-// ── Eventos aleatórios ────────────────────────────────────────────────────────
-
-let tarefasDone = 0;
-let tickAtividade = 0;
-let tickIncidente = 0;
+// ── Loop principal ────────────────────────────────────────────────────────────
 
 function tick() {
+  frame++;
   tickAtividade++;
   tickIncidente++;
+  tickMetrica++;
 
-  // Mensagem de atividade aleatória a cada ~45s
-  if (tickAtividade >= 9) {
+  // Sparkline: cada tick (~150ms)
+  if (frame % 3 === 0) atualizarSparkline();
+
+  // Métricas: a cada ~3s (20 ticks)
+  if (tickMetrica >= 20) {
+    tickMetrica = 0;
+    atualizarMetricas();
+    verificarMudancas();
+  }
+
+  // Atividade NPC: a cada ~45s (300 ticks)
+  if (tickAtividade >= 300) {
     tickAtividade = 0;
-    const [npc, msg] = ATIVIDADES_ALEATORIAS[Math.floor(Math.random() * ATIVIDADES_ALEATORIAS.length)];
+    const [npc, msg] = ATIVIDADES[Math.floor(Math.random() * ATIVIDADES.length)];
     pushFeed(npc, msg);
   }
 
-  // Incidente aleatório a cada ~5-8 min
-  if (!incidenteAtivo && tickIncidente >= Math.floor(60 + Math.random() * 40)) {
+  // Incidente: a cada ~5-8 min (2000-3200 ticks)
+  if (!incidenteAtivo && tickIncidente >= Math.floor(2000 + Math.random() * 1200)) {
     tickIncidente = 0;
-    incidenteIdx  = Math.floor(Math.random() * INCIDENTES.length);
+    incidenteIdx = Math.floor(Math.random() * INCIDENTES.length);
     const [npc, msg] = INCIDENTES[incidenteIdx];
     pushFeed(npc, msg, 'alerta');
     incidenteAtivo = true;
-
-    // Resolve o incidente após 1-2 minutos
     setTimeout(() => {
       const [npcR, msgR] = RESOLUCOES[incidenteIdx];
       pushFeed(npcR, msgR, 'ok');
@@ -359,16 +403,82 @@ function tick() {
     }, 60000 + Math.random() * 60000);
   }
 
-  verificarMudancas();
-  renderizar();
+  process.stdout.write(buildFrame());
+}
+
+// ── Boot sequence ─────────────────────────────────────────────────────────────
+
+function boot() {
+  const etapas = [
+    { msg: 'Verificando integridade do sistema...',   pct: 10 },
+    { msg: 'Carregando modulos corporativos...',       pct: 25 },
+    { msg: 'Conectando ao banco de dados...',          pct: 40 },
+    { msg: 'Inicializando servicos de autenticacao...', pct: 55 },
+    { msg: 'Sincronizando feed da equipe...',          pct: 70 },
+    { msg: 'Carregando estado da sprint...',           pct: 85 },
+    { msg: 'Sistema pronto.',                          pct: 100 },
+  ];
+
+  function barra(pct, w = 32) {
+    const filled = Math.round((pct / 100) * w);
+    return `${A.green}${'█'.repeat(filled)}${A.gray}${'░'.repeat(w - filled)}${A.reset}`;
+  }
+
+  function renderBoot(idx, pct, msg) {
+    let out = A.clear;
+    out += '\n\n';
+    out += `  ${A.cyan}${A.bold}`;
+    out += '  ██████╗ ███████╗██╗   ██╗████████╗███████╗ ██████╗██╗  ██╗\n';
+    out += '  ██╔══██╗██╔════╝██║   ██║╚══██╔══╝██╔════╝██╔════╝██║  ██║\n';
+    out += '  ██║  ██║█████╗  ██║   ██║   ██║   █████╗  ██║     ███████║\n';
+    out += '  ██║  ██║██╔══╝  ╚██╗ ██╔╝   ██║   ██╔══╝  ██║     ██╔══██║\n';
+    out += '  ██████╔╝███████╗ ╚████╔╝    ██║   ███████╗╚██████╗██║  ██║\n';
+    out += '  ╚═════╝ ╚══════╝  ╚═══╝     ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝\n';
+    out += `${A.reset}\n`;
+    out += `  ${A.bold}SISTEMAS S.A.${A.reset} ${A.gray}— Plataforma Corporativa v2.4.1${A.reset}\n`;
+    out += `  ${A.gray}${'─'.repeat(56)}${A.reset}\n\n`;
+
+    for (let i = 0; i < etapas.length; i++) {
+      if (i < idx) {
+        out += `  ${A.green}✓${A.reset}  ${A.gray}${etapas[i].msg}${A.reset}\n`;
+      } else if (i === idx) {
+        out += `  ${A.cyan}${SPIN[Math.floor(Date.now() / 80) % SPIN.length]}${A.reset}  ${etapas[i].msg}\n`;
+      } else {
+        out += `  ${A.gray}·  ${etapas[i].msg}${A.reset}\n`;
+      }
+    }
+
+    out += '\n';
+    out += `  [${barra(pct)}]  ${A.bold}${String(pct).padStart(3)}%${A.reset}\n`;
+    out += '\n';
+
+    process.stdout.write(out);
+  }
+
+  return new Promise(resolve => {
+    let i = 0;
+    const iv = setInterval(() => {
+      renderBoot(i, etapas[i]?.pct || 100, etapas[i]?.msg || '');
+      i++;
+      if (i >= etapas.length) {
+        clearInterval(iv);
+        setTimeout(resolve, 500);
+      }
+    }, 300);
+  });
 }
 
 // ── Inicialização ─────────────────────────────────────────────────────────────
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+// Esconde cursor e restaura no exit
+process.stdout.write(A.hideCursor);
+process.on('exit', () => process.stdout.write(A.showCursor));
+process.on('SIGTERM', () => { process.stdout.write(A.showCursor); process.exit(0); });
 
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 rl.on('SIGINT', () => {
-  console.log('\n\n  Encerrando sistema corporativo...\n');
+  process.stdout.write(A.showCursor);
+  process.stdout.write(`\n\n  ${A.gray}Encerrando sistema corporativo...${A.reset}\n\n`);
   process.exit(0);
 });
 
@@ -377,22 +487,18 @@ const _p = loadProgress();
 xpAnterior = _p.xp;
 const _s = loadSprint();
 if (_s) {
-  sprintAnterior = _s.sprint;
-  tarefasDone = _s.tasks?.filter(t => t.status === 'done').length || 0;
+  sprintAnteriorNome = _s.sprint;
+  tasksDoneAnterior  = _s.tasks?.filter(t => t.status === 'done').length || 0;
 }
 
-// Boot e start
+// Boot → loop
 boot().then(() => {
   pushFeed(NPC.ops, `Sistema inicializado. Bem-vindo, ${loadProgress().name}.`, 'ok');
   pushFeed(NPC.lead, 'Bom trabalho hoje. Foco nas entregas da sprint.');
 
-  renderizar();
+  // Tick a cada 150ms para animações suaves
+  setInterval(tick, 150);
 
-  // Tick a cada 5 segundos
-  setInterval(tick, 5000);
-
-  // Mantém readline aberto
-  rl.on('line', () => {
-    renderizar();
-  });
+  // Mantém readline aberto (Enter força re-render)
+  rl.on('line', () => process.stdout.write(buildFrame()));
 });

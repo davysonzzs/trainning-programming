@@ -1,0 +1,7 @@
+{
+  "name": "06-sistema-seguro-integrador",
+  "version": "1.0.0",
+  "description": "DevTech Sistemas — Pleno III",
+  "scripts": { "test": "jest" },
+  "devDependencies": { "jest": "^29.7.0" }
+}
