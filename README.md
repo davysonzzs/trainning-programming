@@ -19,14 +19,14 @@ Tudo via terminal. Sem interface gráfica. Como deve ser.
 # 1. Registre seu nome
 node dev.js --name "Seu Nome"
 
-# 2. Veja sua ficha de desenvolvedor
-node dev.js
+# 2. Abra o sistema corporativo num terminal e deixe rodando
+node empresa.js
 
-# 3. Veja os projetos disponíveis
-node projetos.js
-
-# 4. Abra o painel de sprint
+# 3. Num segundo terminal, abra o painel de sprint
 node sprint.js
+
+# 4. Veja os projetos disponíveis
+node projetos.js
 
 # 5. Veja a trilha de estudos
 node aulas.js
@@ -34,10 +34,11 @@ node aulas.js
 
 ---
 
-## As quatro telas
+## As cinco telas
 
 | Comando | O que é |
 |---|---|
+| `node empresa.js` | Sistema corporativo — deixe aberto enquanto trabalha |
 | `node sprint.js` | Painel de tarefas da sprint — onde você trabalha |
 | `node dev.js` | Sua ficha: nível, XP, salário e progresso |
 | `node projetos.js` | Quadro de missões — todos os projetos e status |
@@ -49,6 +50,7 @@ node aulas.js
 
 ```
 /
+├── empresa.js         ← sistema corporativo (deixe sempre aberto)
 ├── sprint.js          ← painel de sprint (terminal interativo)
 ├── dev.js             ← ficha do desenvolvedor
 ├── projetos.js        ← quadro de projetos/missões
