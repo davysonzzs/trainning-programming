@@ -36,6 +36,7 @@ const C = {
   green:   '\x1b[32m',
   yellow:  '\x1b[33m',
   blue:    '\x1b[34m',
+  magenta: '\x1b[35m',
   cyan:    '\x1b[36m',
   white:   '\x1b[97m',
   gray:    '\x1b[90m',
@@ -49,21 +50,41 @@ const SPIN = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
 const SPARK_CH = ['▁','▂','▃','▄','▅','▆','▇','█'];
 
 function row(str) {
-  const s = stripAnsi(str);
+  const trunc = truncateVisible(str, INN);
+  const s = stripAnsi(trunc);
   const pad = Math.max(0, INN - s.length);
-  return `║ ${str}${' '.repeat(pad)} ║`;
+  return `║ ${trunc}${' '.repeat(pad)} ║`;
 }
 
 function cen(str) {
-  const s = stripAnsi(str);
+  const trunc = truncateVisible(str, INN);
+  const s = stripAnsi(trunc);
   const lp = Math.max(0, Math.floor((INN - s.length) / 2));
   const rp = Math.max(0, INN - s.length - lp);
-  return `║ ${' '.repeat(lp)}${str}${' '.repeat(rp)} ║`;
+  return `║ ${' '.repeat(lp)}${trunc}${' '.repeat(rp)} ║`;
 }
 
 function stripAnsi(s) {
   return s.replace(/\x1b\[[0-9;]*m/g, '');
 }
+
+// Trunca `str` para no máximo `maxLen` caracteres VISÍVEIS, preservando
+// os códigos ANSI de cor intactos (para não quebrar a formatação nem a
+// largura da linha quando o conteúdo — nome, tarefa, mensagem — é maior
+// que o espaço interno da caixa).
+function truncateVisible(str, maxLen) {
+  if (stripAnsi(str).length <= maxLen) return str;
+  let out = '', visible = 0, i = 0;
+  while (i < str.length && visible < maxLen) {
+    if (str[i] === '\x1b') {
+      const m = str.slice(i).match(/^\x1b\[[0-9;]*m/);
+      if (m) { out += m[0]; i += m[0].length; continue; }
+    }
+    out += str[i]; visible++; i++;
+  }
+  return out + C.reset;
+}
+
 
 function clr(color, str) { return `${color}${str}${C.reset}`; }
 function bold(str)   { return `${C.bold}${str}${C.reset}`; }
@@ -120,18 +141,22 @@ const RESOLUCOES = [
 //  DATA
 // ─────────────────────────────────────────────────────────────────────────────
 
+// sprintDias = duracao padrao da sprint (calendario) pra projetos desse
+// nivel. Nao tem por que um projeto simples de Estagiario levar os mesmos
+// 15 dias corridos de um projeto de Senior — a complexidade cresce com o
+// nivel, entao o prazo cresce junto.
 const LEVELS = [
-  { name: 'Estagiário', xpMin: 0,    xpMax: 149,  salary: 'R$ 800–R$ 1.500',     folder: 'estagiario', fase: 1  },
-  { name: 'Trainee',    xpMin: 150,  xpMax: 349,  salary: 'R$ 2.000–R$ 3.500',   folder: 'trainee',    fase: 2  },
-  { name: 'Junior I',   xpMin: 350,  xpMax: 599,  salary: 'R$ 3.000–R$ 4.500',   folder: 'junior-1',   fase: 3  },
-  { name: 'Junior II',  xpMin: 600,  xpMax: 899,  salary: 'R$ 4.000–R$ 5.500',   folder: 'junior-2',   fase: 5  },
-  { name: 'Junior III', xpMin: 900,  xpMax: 1249, salary: 'R$ 5.000–R$ 7.000',   folder: 'junior-3',   fase: 6  },
-  { name: 'Pleno I',    xpMin: 1250, xpMax: 1649, salary: 'R$ 6.500–R$ 9.000',   folder: 'pleno-1',    fase: 7  },
-  { name: 'Pleno II',   xpMin: 1650, xpMax: 2099, salary: 'R$ 8.500–R$ 11.000',  folder: 'pleno-2',    fase: 8  },
-  { name: 'Pleno III',  xpMin: 2100, xpMax: 2599, salary: 'R$ 10.000–R$ 14.000', folder: 'pleno-3',    fase: 9  },
-  { name: 'Sênior I',   xpMin: 2600, xpMax: 3149, salary: 'R$ 13.000–R$ 17.000', folder: 'senior-1',   fase: 11 },
-  { name: 'Sênior II',  xpMin: 3150, xpMax: 3749, salary: 'R$ 16.000–R$ 22.000', folder: 'senior-2',   fase: 13 },
-  { name: 'Sênior III', xpMin: 3750, xpMax: null, salary: 'R$ 20.000–R$ 30.000+',folder: 'senior-3',   fase: 14 },
+  { name: 'Estagiário', xpMin: 0,    xpMax: 149,  salary: 'R$ 800–R$ 1.500',     folder: 'estagiario', fase: 1,  sprintDias: 7  },
+  { name: 'Trainee',    xpMin: 150,  xpMax: 349,  salary: 'R$ 2.000–R$ 3.500',   folder: 'trainee',    fase: 2,  sprintDias: 7  },
+  { name: 'Junior I',   xpMin: 350,  xpMax: 599,  salary: 'R$ 3.000–R$ 4.500',   folder: 'junior-1',   fase: 3,  sprintDias: 10 },
+  { name: 'Junior II',  xpMin: 600,  xpMax: 899,  salary: 'R$ 4.000–R$ 5.500',   folder: 'junior-2',   fase: 5,  sprintDias: 10 },
+  { name: 'Junior III', xpMin: 900,  xpMax: 1249, salary: 'R$ 5.000–R$ 7.000',   folder: 'junior-3',   fase: 6,  sprintDias: 10 },
+  { name: 'Pleno I',    xpMin: 1250, xpMax: 1649, salary: 'R$ 6.500–R$ 9.000',   folder: 'pleno-1',    fase: 7,  sprintDias: 12 },
+  { name: 'Pleno II',   xpMin: 1650, xpMax: 2099, salary: 'R$ 8.500–R$ 11.000',  folder: 'pleno-2',    fase: 8,  sprintDias: 12 },
+  { name: 'Pleno III',  xpMin: 2100, xpMax: 2599, salary: 'R$ 10.000–R$ 14.000', folder: 'pleno-3',    fase: 9,  sprintDias: 12 },
+  { name: 'Sênior I',   xpMin: 2600, xpMax: 3149, salary: 'R$ 13.000–R$ 17.000', folder: 'senior-1',   fase: 11, sprintDias: 15 },
+  { name: 'Sênior II',  xpMin: 3150, xpMax: 3749, salary: 'R$ 16.000–R$ 22.000', folder: 'senior-2',   fase: 13, sprintDias: 15 },
+  { name: 'Sênior III', xpMin: 3750, xpMax: null, salary: 'R$ 20.000–R$ 30.000+',folder: 'senior-3',   fase: 14, sprintDias: 15 },
 ];
 
 function getLevel(xp) {
@@ -140,14 +165,15 @@ function getLevel(xp) {
   return { lv: LEVELS[0], idx: 0 };
 }
 
+const PROGRESS_DEFAULT = { name: 'Dev', xp: 0, avisos: 0, atrasadas: 0, ultimoAcessoEm: null, diasSeguidos: 0, diasFaltados: 0 };
+
 function loadProgress() {
-  if (!fs.existsSync(PROGRESS_FILE)) return { name: 'Dev', xp: 0, avisos: 0, atrasadas: 0 };
+  if (!fs.existsSync(PROGRESS_FILE)) return { ...PROGRESS_DEFAULT };
   try {
     const p = JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf8'));
-    if (!('avisos' in p))   p.avisos   = 0;
-    if (!('atrasadas' in p)) p.atrasadas = 0;
+    for (const k of Object.keys(PROGRESS_DEFAULT)) if (!(k in p)) p[k] = PROGRESS_DEFAULT[k];
     return p;
-  } catch { return { name: 'Dev', xp: 0, avisos: 0, atrasadas: 0 }; }
+  } catch { return { ...PROGRESS_DEFAULT }; }
 }
 
 function saveProgress(p) { fs.writeFileSync(PROGRESS_FILE, JSON.stringify(p, null, 2)); }
@@ -155,7 +181,9 @@ function saveProgress(p) { fs.writeFileSync(PROGRESS_FILE, JSON.stringify(p, nul
 function loadSprint() {
   if (!fs.existsSync(SPRINT_FILE)) {
     const init = { sprint: 'Sprint 1', nextId: 1, tasks: [], tempoAtivoMs: 0,
-      sessaoIniciadaEm: null, pausadoEm: null, estimativaHoras: 2, projetoAtual: null };
+      sessaoIniciadaEm: null, pausadoEm: null, estimativaHoras: 2, projetoAtual: null,
+      extensoesQA: 0, sprintIniciadaEm: null, prazoDias: 15, tarefaAtivaId: null,
+      nextPr: 1, ciRuns: [] };
     fs.writeFileSync(SPRINT_FILE, JSON.stringify(init, null, 2));
     return init;
   }
@@ -166,6 +194,12 @@ function loadSprint() {
     if (!('pausadoEm'        in d)) d.pausadoEm        = null;
     if (!('projetoAtual'     in d)) d.projetoAtual     = null;
     if (!('estimativaHoras'  in d)) d.estimativaHoras  = 2;
+    if (!('extensoesQA'      in d)) d.extensoesQA      = 0;
+    if (!('sprintIniciadaEm' in d)) d.sprintIniciadaEm = null;
+    if (!('prazoDias'        in d)) d.prazoDias        = 15;
+    if (!('tarefaAtivaId'    in d)) d.tarefaAtivaId    = null;
+    if (!('nextPr'           in d)) d.nextPr           = 1;
+    if (!('ciRuns'           in d)) d.ciRuns           = [];
     return d;
   } catch { return null; }
 }
@@ -226,13 +260,21 @@ function contarProjetos() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const APP = {
-  screen:    'menu',    // menu | empresa | sprint | dev | projetos | aulas
+  screen:    'menu',    // menu | empresa | sprint | dev | projetos | aulas | github
   menuSel:   0,
   frame:     0,
   inputBuf:  '',
   lastFb:    null,      // sprint feedback
   aulasScroll: 0,
   aulaLines: [],
+  projetosScroll: 0,
+  projView: 'list',        // list | readme
+  projIndice: [],
+  projReadmeAtual: null,
+  readmeLines: [],
+  readmeScroll: 0,
+  githubTab: 'issues',     // issues | prs | actions
+  githubScroll: 0,
 
   // empresa
   feed: [], feedTick: 0, incAtivo: false, incIdx: null,
@@ -250,6 +292,7 @@ const MENU_ITEMS = [
   { key:'3', label:'Ficha do Desenvolvedor',    desc:'Nivel, XP, salario e historico'   },
   { key:'4', label:'Quadro de Projetos',        desc:'Missoes disponiveis e progresso'  },
   { key:'5', label:'Trilha de Estudos',         desc:'14 fases ate Senior III'          },
+  { key:'6', label:'GitHub (simulado)',         desc:'Issues, Pull Requests e Actions'  },
 ];
 
 function spin(o=0) { return SPIN[(APP.frame+o) % SPIN.length]; }
@@ -284,28 +327,34 @@ function sparkline() {
 }
 
 function timerLine(s) {
-  const hora  = horaAtual();
-  const ativo = tempoAtivoTotal(s);
-  const estMs = s.estimativaHoras * 3600000;
-  const pausado = !s.sessaoIniciadaEm;
-  const pct  = ativo / estMs;
+  const hora   = horaAtual();
+  const tarefa = s.tarefaAtivaId ? s.tasks.find(t => t.id === s.tarefaAtivaId) : null;
 
-  if (!s.sessaoIniciadaEm && !s.pausadoEm && ativo === 0)
-    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.gray,'—')} use "retomar" para iniciar o timer`;
+  // o cronometro e por tarefa (o QA passa uma coisa de cada vez) — sem
+  // tarefa ativa, nao tem o que medir.
+  if (!tarefa)
+    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.gray,'—')} nenhuma tarefa em andamento — "start <nº>" pra começar`;
+
+  const ativo   = tempoAtivoTotal(s);
+  const est     = tarefa.estimativaHoras || s.estimativaHoras;
+  const estMs   = est * 3600000;
+  const pausado = !s.sessaoIniciadaEm;
+  const pct     = ativo / estMs;
+  const rot     = `#${tarefa.id}: `;
 
   if (pausado)
-    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.yellow,'⏸ PAUSADO')} — ${fmtMs(ativo)} / ${s.estimativaHoras}h`;
+    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.yellow,'⏸ PAUSADO')} — ${rot}${fmtMs(ativo)} / ${est}h`;
 
   if (pct >= 2.0)
-    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.red,'⚠ SPRINT CRÍTICA')}: ${fmtMs(ativo)} / ${s.estimativaHoras}h  (+${fmtMs(ativo-estMs)})`;
+    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.red,'⚠ CRÍTICO')}: ${rot}${fmtMs(ativo)} / ${est}h  (+${fmtMs(ativo-estMs)})`;
 
   if (pct >= 1.0)
-    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.red,'⚠ ESTOURADA')}: ${fmtMs(ativo)} / ${s.estimativaHoras}h  (+${fmtMs(ativo-estMs)})`;
+    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.red,'⚠ ESTOURADO')}: ${rot}${fmtMs(ativo)} / ${est}h  (+${fmtMs(ativo-estMs)})`;
 
   if (pct >= 0.8)
-    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.yellow,'⚡')} ${fmtMs(ativo)} / ${s.estimativaHoras}h  (faltam ${fmtMs(estMs-ativo)})`;
+    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.yellow,'⚡')} ${rot}${fmtMs(ativo)} / ${est}h  (faltam ${fmtMs(estMs-ativo)})`;
 
-  return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.green,'▶')} ${fmtMs(ativo)} / ${s.estimativaHoras}h  (faltam ${clr(C.cyan,fmtMs(estMs-ativo))})`;
+  return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.green,'▶')} ${rot}${fmtMs(ativo)} / ${est}h  (faltam ${clr(C.cyan,fmtMs(estMs-ativo))})`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -320,15 +369,15 @@ function buildMenu() {
 
   let o = C.cls + C.hide;
   o += `╔${LINE}╗\n`;
-  o += `║ ${clr(C.cyan, C.bold+'  ██████╗ ███████╗██╗   ██╗████████╗███████╗ ██████╗██╗  ██╗'+C.reset).padEnd(INN+20)} ║\n`;
-  o += `║ ${clr(C.cyan, '  ██╔══██╗██╔════╝██║   ██║╚══██╔══╝██╔════╝██╔════╝██║  ██║').padEnd(INN+9)} ║\n`;
-  o += `║ ${clr(C.cyan, '  ██║  ██║█████╗  ██║   ██║   ██║   █████╗  ██║     ███████║').padEnd(INN+9)} ║\n`;
-  o += `║ ${clr(C.cyan, '  ██║  ██║██╔══╝  ╚██╗ ██╔╝   ██║   ██╔══╝  ██║     ██╔══██║').padEnd(INN+9)} ║\n`;
-  o += `║ ${clr(C.cyan, '  ██████╔╝███████╗ ╚████╔╝    ██║   ███████╗╚██████╗██║  ██║').padEnd(INN+9)} ║\n`;
-  o += `║ ${clr(C.cyan, '  ╚═════╝ ╚══════╝  ╚═══╝     ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝').padEnd(INN+9)} ║\n`;
+  o += row(bold(clr(C.cyan, '  ██████╗ ███████╗██╗   ██╗████████╗███████╗ ██████╗██╗  ██╗'))) + '\n';
+  o += row(clr(C.cyan, '  ██╔══██╗██╔════╝██║   ██║╚══██╔══╝██╔════╝██╔════╝██║  ██║')) + '\n';
+  o += row(clr(C.cyan, '  ██║  ██║█████╗  ██║   ██║   ██║   █████╗  ██║     ███████║')) + '\n';
+  o += row(clr(C.cyan, '  ██║  ██║██╔══╝  ╚██╗ ██╔╝   ██║   ██╔══╝  ██║     ██╔══██║')) + '\n';
+  o += row(clr(C.cyan, '  ██████╔╝███████╗ ╚████╔╝    ██║   ███████╗╚██████╗██║  ██║')) + '\n';
+  o += row(clr(C.cyan, '  ╚═════╝ ╚══════╝  ╚═══╝     ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝')) + '\n';
   o += cen(clr(C.gray, 'S I S T E M A S   S . A .   —   Sistema de Treinamento')) + '\n';
   o += `╠${LINE}╣\n`;
-  o += row(` ${bold(p.name)}  ${clr(C.gray,'│')}  ${clr(C.yellow,lv.name)}  ${clr(C.gray,'│')}  XP: ${clr(C.cyan,String(p.xp))}/${lv.xpMax !== null ? lv.xpMax+1 : 'MAX'}  ${clr(C.gray,'│')}  ${proj.concluidos}/${proj.total} projetos  ${clr(C.gray,'│')}  ${dataAtual()} ${clr(C.cyan,horaAtual())}`) + '\n';
+  o += row(` ${bold(p.name)} ${clr(C.gray,'│')} ${clr(C.yellow,lv.name)} ${clr(C.gray,'│')} XP: ${clr(C.cyan,String(p.xp))}/${lv.xpMax !== null ? lv.xpMax+1 : 'MAX'} ${clr(C.gray,'│')} ${proj.concluidos}/${proj.total} proj ${clr(C.gray,'│')} ${clr(C.cyan,horaAtual())}`) + '\n';
   o += `╠${LINE}╣\n`;
   o += row('') + '\n';
 
@@ -347,7 +396,7 @@ function buildMenu() {
   }
   if (p.avisos > 0) o += row(`  ${clr(C.yellow,'⚠')}  Avisos de desempenho: ${clr(C.yellow,String(p.avisos))}`) + '\n';
   o += `╠${LINE}╣\n`;
-  o += row(dim(`  ↑↓  mover   Enter  entrar   1-5  atalho   Ctrl+C  sair`)) + '\n';
+  o += row(dim(`  ↑↓  mover   Enter  entrar   1-6  atalho   Ctrl+C  sair`)) + '\n';
   o += `╚${LINE}╝\n`;
   return o;
 }
@@ -400,11 +449,23 @@ function buildEmpresa() {
     { hora: horaAtual(), tag: NPC.ops.tag, msg: 'Todos os sistemas operacionais.', tipo:'ok' }
   ];
 
-  for (const item of exibir) {
-    const pfx = item.tipo==='alerta' ? clr(C.yellow,'⚠') : item.tipo==='ok' ? clr(C.green,'✓') : ' ';
-    o += row(` ${pfx} ${clr(C.gray,item.hora)}  ${item.tag}  ${item.msg}`) + '\n';
+  // orcamento fixo de 6 linhas — mensagem comprida quebra em ate 2 linhas,
+  // e se nao couber tudo, prioriza as mais recentes (por isso monta de tras pra frente)
+  const BUDGET_FEED = 6;
+  const gruposFeed = [];
+  let totalFeed = 0;
+  for (const item of [...exibir].reverse()) {
+    const pfx     = item.tipo==='alerta' ? clr(C.yellow,'⚠') : item.tipo==='ok' ? clr(C.green,'✓') : ' ';
+    const prefixo = ` ${pfx} ${clr(C.gray,item.hora)}  ${item.tag}  `;
+    const linhas  = wrapPrefixedColored(prefixo, item.msg, INN, 2);
+    if (totalFeed + linhas.length > BUDGET_FEED) break;
+    gruposFeed.push(linhas);
+    totalFeed += linhas.length;
   }
-  for (let i = exibir.length; i < 6; i++) o += row('') + '\n';
+  gruposFeed.reverse();
+  const linhasFeed = gruposFeed.flat();
+  for (const ln of linhasFeed) o += row(ln) + '\n';
+  for (let i = linhasFeed.length; i < BUDGET_FEED; i++) o += row('') + '\n';
 
   o += `╠${LINE}╣\n`;
   o += row(dim('  Esc  voltar ao menu   Enter  atualizar')) + '\n';
@@ -415,16 +476,24 @@ function buildEmpresa() {
 // ── SPRINT ───────────────────────────────────────────────────────────────────
 
 function buildSprint(s) {
-  const p       = loadProgress();
-  const backlog = s.tasks.filter(t => t.status==='backlog');
-  const doing   = s.tasks.filter(t => t.status==='doing');
-  const done    = s.tasks.filter(t => t.status==='done');
-  const rows    = Math.max(backlog.length, doing.length, done.length, 1);
-  const pausado = !s.sessaoIniciadaEm;
-  const COL     = 22;
-  const msgs    = loadMessages().slice(-3);
-  const [aNpc]  = MSGS_AMBIENTE[APP.frame % MSGS_AMBIENTE.length];
-  const aMsg    = MSGS_AMBIENTE[APP.frame % MSGS_AMBIENTE.length];
+  const p        = loadProgress();
+  const backlog  = s.tasks.filter(t => t.status==='backlog');
+  const doing    = s.tasks.filter(t => t.status==='doing');
+  const revisao  = s.tasks.filter(t => t.status==='revisao');
+  const done     = s.tasks.filter(t => t.status==='done');
+  const rows     = Math.max(backlog.length, doing.length, revisao.length, done.length, 1);
+  const pausado  = !s.sessaoIniciadaEm;
+  const COL      = 18;   // 4 colunas de 18 + 3 separadores "│" + 1 indent = 76 = INN
+  const msgs     = loadMessages().slice(-3);
+  // troca a cada 15s de tempo REAL, nao a cada frame — como a tela agora
+  // redesenha sozinha (150ms), usar APP.frame direto fazia a mensagem
+  // ambiente trocar a cada tick, parecendo um monte de mensagem piscando.
+  const aMsg     = MSGS_AMBIENTE[Math.floor(Date.now() / 15000) % MSGS_AMBIENTE.length];
+
+  // sprint de verdade: prazo em dias corridos, roda mesmo com o app fechado
+  const diasRestantes = s.sprintIniciadaEm
+    ? Math.max(0, (s.prazoDias||15) - Math.floor((Date.now()-new Date(s.sprintIniciadaEm).getTime())/86400000))
+    : null;
 
   function cell(task, col) {
     if (!task) return ' '.repeat(col);
@@ -432,41 +501,79 @@ function buildSprint(s) {
     return (s2.length > col ? s2.slice(0,col-1)+'…' : s2).padEnd(col);
   }
 
-  function doingCell(task) {
+  function comSufixo(task, sufixo) {
     if (!task) return ' '.repeat(COL);
-    const suf = pausado ? ' (pausado)' : ` (${Math.floor((Date.now()-new Date(task.startedAt||Date.now()).getTime())/60000)}m)`;
-    const s2 = `[${task.id}] ${task.title}${suf}`;
+    const s2 = `[${task.id}] ${task.title}${sufixo}`;
     return (s2.length > COL ? s2.slice(0,COL-1)+'…' : s2).padEnd(COL);
   }
 
-  const sep = `  ${clr(C.gray,'─'.repeat(COL)+'─┼─'+'─'.repeat(COL)+'─┼─'+'─'.repeat(COL))}`;
+  function doingCell(task) {
+    if (!task) return ' '.repeat(COL);
+    const suf = pausado ? ' (pausado)' : ` (${Math.floor((Date.now()-new Date(task.startedAt||Date.now()).getTime())/60000)}m)`;
+    return comSufixo(task, suf);
+  }
+
+  function revisaoCell(task) {
+    if (!task) return ' '.repeat(COL);
+    const min = Math.floor((Date.now()-new Date(task.enviadoRevisaoEm||Date.now()).getTime())/60000);
+    return comSufixo(task, ` ⏳${min>0?min+'m':''}`);
+  }
+
+  // pad ANTES de colorir, pra não contar os códigos ANSI como largura
+  function padVisible(str, width) {
+    return str + ' '.repeat(Math.max(0, width - stripAnsi(str).length));
+  }
+
+  function quadroRow(a, b, c, d) { return row(` ${a}│${b}│${c}│${d}`); }
+
+  const sepLine = clr(C.gray, '─'.repeat(COL) + '┼' + '─'.repeat(COL) + '┼' + '─'.repeat(COL) + '┼' + '─'.repeat(COL));
 
   let o = C.cls + C.hide;
   o += `╔${LINE}╗\n`;
   o += row(` ${bold('DEVTECH SISTEMAS S.A.')}  ${' '.repeat(26)}Dev: ${bold(p.name)}  XP: ${clr(C.cyan,String(p.xp))}`) + '\n';
   o += row(` Sprint: ${bold(s.sprint)}${pausado ? '  '+clr(C.yellow,'[PAUSADO]') : ''}  ${s.projetoAtual ? clr(C.gray,'  proj: '+s.projetoAtual) : ''}`) + '\n';
+  if (diasRestantes !== null) {
+    const cor = diasRestantes <= 2 ? C.red : diasRestantes <= 5 ? C.yellow : C.green;
+    const ext = s.extensoesQA > 0 ? clr(C.gray, `  (${s.extensoesQA} reestimativa(s))`) : '';
+    o += row(` ${clr(C.gray,'Prazo:')} ${clr(cor, `${diasRestantes} dia${diasRestantes===1?'':'s'} restante${diasRestantes===1?'':'s'}`)} de ${s.prazoDias||15} corridos${ext}`) + '\n';
+  }
   o += row(` ${timerLine(s)}`) + '\n';
   o += `╠${LINE}╣\n`;
-  o += row(` ${bold(clr(C.cyan,'BACKLOG')).padEnd(COL+9)}  ${bold(clr(C.yellow,'EM ANDAMENTO')).padEnd(COL+9)}  ${bold(clr(C.green,'CONCLUIDO'))}`) + '\n';
-  o += sep + '\n';
+  o += quadroRow(
+    padVisible(bold(clr(C.cyan,'BACKLOG')), COL),
+    padVisible(bold(clr(C.yellow,'DESENVOLV.')), COL),
+    padVisible(bold(clr(C.magenta,'EM REVISÃO')), COL),
+    bold(clr(C.green,'CONCLUÍDO')),
+  ) + '\n';
+  o += row(` ${sepLine}`) + '\n';
   for (let i = 0; i < rows; i++) {
     const bd = cell(backlog[i], COL);
     const dd = doingCell(doing[i]);
+    const rv = revisaoCell(revisao[i]);
     const dn = cell(done[i], COL);
-    o += `  ${bd} │ ${doing[i] ? clr(C.yellow,dd) : dd} │ ${done[i] ? clr(C.green,dn) : dn}\n`;
+    o += quadroRow(
+      bd,
+      doing[i]   ? clr(C.yellow,dd)  : dd,
+      revisao[i] ? clr(C.magenta,rv) : rv,
+      done[i]    ? clr(C.green,dn)   : dn,
+    ) + '\n';
   }
-  o += `╠${LINE}╗\n`.replace('╗','╣');
+  o += `╠${LINE}╣\n`;
   o += row(bold(' MENSAGENS')) + '\n';
   o += `╠${LINE}╣\n`;
+  const linhaMsg = (tag, texto) =>
+    wrapPrefixedColored('', `${tag} ${texto}`, INN - 1, 2)
+      .map(l => row(` ${clr(C.gray, l)}`)).join('\n');
   if (msgs.length === 0) {
-    o += row(` ${clr(C.gray, aMsg[0].tag+' '+aMsg[1])}`) + '\n';
+    o += linhaMsg(aMsg[0].tag, aMsg[1]) + '\n';
   } else {
-    for (const m of msgs) o += row(` ${clr(C.gray, m.tag+' '+m.texto)}`) + '\n';
-    o += row(` ${clr(C.gray, aMsg[0].tag+' '+aMsg[1])}`) + '\n';
+    for (const m of msgs) o += linhaMsg(m.tag, m.texto) + '\n';
+    o += linhaMsg(aMsg[0].tag, aMsg[1]) + '\n';
   }
   o += `╠${LINE}╣\n`;
   if (APP.lastFb) o += row(` ${APP.lastFb}`) + '\n', o += `╠${LINE}╣\n`;
-  o += row(dim('  add  start  done  rm  sprint  pausar  retomar  projeto  concluir  estimativa')) + '\n';
+  o += row(dim('  projeto  (pega o próximo da sua fila)')) + '\n';
+  o += row(dim('  ver/start/revisar/rm <nº>   pausar   retomar   concluir')) + '\n';
   o += `╠${LINE}╣\n`;
   o += row(` ${clr(C.cyan,'>')} ${APP.inputBuf}${clr(C.gray,'█')}`) + '\n';
   o += `╚${LINE}╝\n`;
@@ -493,6 +600,7 @@ function buildDev() {
   o += row(`  ${clr(C.gray,'XP            ')}   ${clr(C.cyan,String(p.xp))} XP`) + '\n';
   o += row(`  ${clr(C.gray,'Salário       ')}   ${lv.salary}`) + '\n';
   o += row(`  ${clr(C.gray,'Projetos      ')}   ${clr(C.green,String(proj.concluidos))}/${proj.total} entregues`) + '\n';
+  o += row(`  ${clr(C.gray,'Prática diária')}   ${clr(C.cyan,String(p.diasSeguidos||0))} dia(s) seguido(s)${p.diasFaltados>0?clr(C.gray,`  (${p.diasFaltados} perdido(s) ao todo)`):''}`) + '\n';
   if (p.atrasadas > 0) o += row(`  ${clr(C.gray,'Atrasos       ')}   ${clr(C.yellow,String(p.atrasadas))} sprint(s) atrasada(s)`) + '\n';
   if (p.avisos > 0)    o += row(`  ${clr(C.yellow,'⚠ Avisos      ')}   ${clr(C.yellow,String(p.avisos))} aviso(s) de desempenho`) + '\n';
   o += row('') + '\n';
@@ -508,7 +616,10 @@ function buildDev() {
   if (msgs.length === 0)
     o += row(clr(C.gray,'  (nenhuma mensagem ainda)')) + '\n';
   else
-    for (const m of msgs) o += row(` ${clr(C.gray,m.tag)} ${m.texto}`) + '\n';
+    for (const m of msgs) {
+      const linhas = wrapPrefixedColored(clr(C.gray, `${m.tag} `), m.texto, INN - 1, 2);
+      for (const l of linhas) o += row(` ${l}`) + '\n';
+    }
   o += `╠${LINE}╣\n`;
   o += row(dim('  name <seu nome>   Enter atualizar   Esc voltar')) + '\n';
   o += `╠${LINE}╣\n`;
@@ -519,45 +630,215 @@ function buildDev() {
 
 // ── PROJETOS ─────────────────────────────────────────────────────────────────
 
+function getProjectStatus(nivel, proj, atual) {
+  const pp = path.join(PROJECTS_DIR, nivel, proj);
+  if (fs.existsSync(path.join(pp, '.concluido')))   return { icon: clr(C.green,'✓'), label: 'ENTREGUE',     cor: C.green  };
+  if (atual && atual.includes(proj))                return { icon: clr(C.yellow,'⚙'), label: 'EM ANDAMENTO', cor: C.yellow };
+  return { icon: clr(C.gray,'○'), label: 'PENDENTE',     cor: C.gray   };
+}
+
 function buildProjetos() {
+  if (APP.projView === 'readme') return buildProjetoReadme();
+
   const sprint = loadSprint();
   const atual  = sprint?.projetoAtual || null;
+  const proj   = contarProjetos();
 
-  function getStatus(nivel, proj) {
-    const pp = path.join(PROJECTS_DIR, nivel, proj);
-    if (fs.existsSync(path.join(pp, '.concluido')))   return { icon: clr(C.green,'✓'), label: 'ENTREGUE',     cor: C.green  };
-    if (atual && atual.includes(proj))                return { icon: clr(C.yellow,'⚙'), label: 'EM ANDAMENTO', cor: C.yellow };
-    return { icon: clr(C.gray,'○'), label: 'PENDENTE',     cor: C.gray   };
-  }
-
-  const proj = contarProjetos();
-  let o = C.cls + C.hide;
-  o += `╔${LINE}╗\n`;
-  o += cen(bold('DEVTECH SISTEMAS S.A.  ─  Quadro de Projetos')) + '\n';
-  o += row(` ${clr(C.green,String(proj.concluidos))}/${proj.total} projetos entregues  ${xpBar(proj.concluidos, {xpMin:0,xpMax:proj.total-1}, 30)}`) + '\n';
-  o += `╠${LINE}╣\n`;
-
+  const lines = [];
+  const indice = [];   // mapeia numero exibido → { nivel, pj }
   if (!fs.existsSync(PROJECTS_DIR)) {
-    o += row(clr(C.gray,'  Nenhum projeto encontrado.')) + '\n';
+    lines.push(clr(C.gray,'  Nenhum projeto encontrado.'));
   } else {
     for (const nivel of fs.readdirSync(PROJECTS_DIR).sort()) {
       const np = path.join(PROJECTS_DIR, nivel);
       if (!fs.statSync(np).isDirectory()) continue;
       const lv = LEVELS.find(l => l.folder === nivel);
-      o += row(`  ${bold(clr(C.cyan, (lv ? lv.name : nivel).padEnd(12)))}`) + '\n';
+      lines.push(`  ${bold(clr(C.cyan, (lv ? lv.name : nivel).padEnd(12)))}`);
       for (const pj of fs.readdirSync(np).sort()) {
         const pp = path.join(np, pj);
         if (!fs.statSync(pp).isDirectory()) continue;
-        const st = getStatus(nivel, pj);
-        o += row(`    ${st.icon}  ${clr(st.cor, pj)}`) + '\n';
+        const st = getProjectStatus(nivel, pj, atual);
+        indice.push({ nivel, pj });
+        const num = String(indice.length).padStart(2,'0');
+        lines.push(`  ${clr(C.gray,num)}  ${st.icon}  ${clr(st.cor, pj.padEnd(34))} ${clr(st.cor, st.label)}`);
       }
     }
   }
+  APP.projIndice = indice;
+
+  const visible = 18;
+  const total   = lines.length;
+  const scroll  = Math.max(0, Math.min(APP.projetosScroll, Math.max(0, total - visible)));
+  APP.projetosScroll = scroll;
+
+  let o = C.cls + C.hide;
+  o += `╔${LINE}╗\n`;
+  o += cen(bold('DEVTECH SISTEMAS S.A.  ─  Quadro de Projetos')) + '\n';
+  o += row(` ${clr(C.green,String(proj.concluidos))}/${proj.total} projetos entregues  ${xpBar(proj.concluidos, {xpMin:0,xpMax:proj.total-1}, 30)}`) + '\n';
+  if (total > visible)
+    o += row(dim(`  [${scroll+1}-${Math.min(scroll+visible,total)} de ${total}]`)) + '\n';
+  o += `╠${LINE}╣\n`;
+
+  const slice = lines.slice(scroll, scroll + visible);
+  for (const ln of slice) o += row(ln) + '\n';
+  for (let i = slice.length; i < visible; i++) o += row('') + '\n';
 
   o += `╠${LINE}╣\n`;
-  o += row(dim('  Esc  voltar ao menu')) + '\n';
+  if (APP.lastFb) { o += row(` ${APP.lastFb}`) + '\n'; o += `╠${LINE}╣\n`; }
+  o += row(dim('  ↑↓  rolar   PgUp/PgDn  página   Nº + Enter  ler README   Esc  voltar')) + '\n';
+  o += `╠${LINE}╣\n`;
+  o += row(` ${clr(C.cyan,'>')} ${APP.inputBuf}${clr(C.gray,'█')}`) + '\n';
   o += `╚${LINE}╝\n`;
   return o;
+}
+
+// ── README do projeto ───────────────────────────────────────────────────────
+
+function buildProjetoReadme() {
+  const { nivel, pj } = APP.projReadmeAtual || {};
+  const lv = LEVELS.find(l => l.folder === nivel);
+
+  const visible = 24;
+  const total   = APP.readmeLines.length;
+  const scroll  = Math.max(0, Math.min(APP.readmeScroll, Math.max(0, total - visible)));
+  APP.readmeScroll = scroll;
+
+  let o = C.cls + C.hide;
+  o += `╔${LINE}╗\n`;
+  o += cen(bold(`README  ─  ${pj || '?'}`)) + '\n';
+  o += row(dim(`  ${lv ? lv.name : nivel}   [${scroll+1}-${Math.min(scroll+visible,total)} de ${total}]`)) + '\n';
+  o += `╠${LINE}╣\n`;
+
+  const slice = APP.readmeLines.slice(scroll, scroll + visible);
+  for (const ln of slice) o += row(' ' + ln) + '\n';
+  for (let i = slice.length; i < visible; i++) o += row('') + '\n';
+
+  o += `╠${LINE}╣\n`;
+  o += row(dim('  ↑↓  rolar   PgUp/PgDn  página   Esc  voltar ao quadro')) + '\n';
+  o += `╚${LINE}╝\n`;
+  return o;
+}
+
+// ── MARKDOWN → TERMINAL ─────────────────────────────────────────────────────
+// Só reformata para EXIBIÇÃO dentro do simulador — o arquivo README.md em
+// disco não é tocado, então quem preferir abrir/ler o .md puro continua
+// vendo o markdown normal (editor, cat, GitHub etc.).
+
+const MD_WIDTH = 68;
+
+function wrapWords(text, width) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = [], curLen = 0;
+  for (const w of words) {
+    const add = curLen === 0 ? w.length : curLen + 1 + w.length;
+    if (add > width && curLen > 0) { lines.push(cur.join(' ')); cur = [w]; curLen = w.length; }
+    else { cur.push(w); curLen = add; }
+  }
+  if (cur.length) lines.push(cur.join(' '));
+  return lines.length ? lines : [''];
+}
+
+// Mensagem maior que a largura disponível? Em vez de cortar, quebra em até
+// `maxLines` linhas — a primeira com `prefixColored` (pode já vir colorido,
+// só a largura visível dele importa pro cálculo), as seguintes indentadas
+// na mesma coluna onde o texto começou.
+function wrapPrefixedColored(prefixColored, body, width, maxLines) {
+  const plainLen = stripAnsi(prefixColored).length;
+  const avail    = Math.max(10, width - plainLen);
+  let chunks = wrapWords(body, avail);
+  if (chunks.length > maxLines) {
+    chunks = chunks.slice(0, maxLines);
+    chunks[maxLines - 1] = chunks[maxLines - 1] + '…';
+  }
+  const indent = ' '.repeat(plainLen);
+  return chunks.map((c, i) => (i === 0 ? prefixColored + c : indent + c));
+}
+
+// Aplica negrito/itálico/código/links inline (markdown) usando ANSI.
+function mdInline(text) {
+  return text
+    .replace(/`([^`]+)`/g,        (_, c) => clr(C.yellow, c))
+    .replace(/\*\*([^*]+)\*\*/g,  (_, b) => bold(b))
+    .replace(/__([^_]+)__/g,      (_, b) => bold(b))
+    .replace(/\*([^*]+)\*/g,      (_, i) => dim(i))
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) => clr(C.cyan, t) + ' ' + clr(C.gray, `(${u})`));
+}
+
+// Quebra `text` em linhas de até `width` (medindo texto puro) e prefixa a
+// primeira com `prefix` (colorido) e as demais com espaços do mesmo tamanho.
+function mdBlock(text, prefix, width) {
+  const indent = ' '.repeat(stripAnsi(prefix).length);
+  return wrapWords(text, Math.max(10, width - stripAnsi(prefix).length))
+    .map((ln, i) => (i === 0 ? prefix : indent) + mdInline(ln));
+}
+
+function renderMarkdown(raw) {
+  const out = [];
+  let paragrafo = [];
+  let emCodigo = false;
+  let codigo = [];
+
+  function flush() {
+    if (!paragrafo.length) return;
+    const texto = paragrafo.join(' ').trim();
+    paragrafo = [];
+    if (!texto) return;
+    for (const ln of wrapWords(texto, MD_WIDTH)) out.push(mdInline(ln));
+  }
+
+  for (const raw2 of raw.split('\n')) {
+    const hardBreak = /  $/.test(raw2);   // duas espacos no fim = quebra de linha do markdown
+    const ln = raw2.replace(/\s+$/, '');
+    const fence = ln.match(/^```/);
+
+    if (fence) {
+      if (!emCodigo) {
+        flush();
+        emCodigo = true; codigo = [];
+        out.push(clr(C.gray, '  ┌' + '─'.repeat(MD_WIDTH - 2)));
+      } else {
+        for (const cl of codigo) out.push(clr(C.green, '  │ ') + clr(C.green, cl));
+        out.push(clr(C.gray, '  └' + '─'.repeat(MD_WIDTH - 2)));
+        emCodigo = false;
+      }
+      continue;
+    }
+    if (emCodigo) { codigo.push(ln.length > MD_WIDTH - 4 ? ln.slice(0, MD_WIDTH - 5) + '…' : ln); continue; }
+
+    if (ln.trim() === '')                     { flush(); out.push(''); continue; }
+    if (/^-{3,}$/.test(ln.trim()))             { flush(); out.push(clr(C.gray, '─'.repeat(MD_WIDTH))); continue; }
+
+    let m;
+    if (m = ln.match(/^#\s+(.*)/))             { flush(); out.push(''); out.push(bold(clr(C.cyan, mdInline(m[1])))); out.push(clr(C.cyan, '═'.repeat(Math.min(MD_WIDTH, stripAnsi(mdInline(m[1])).length)))); continue; }
+    if (m = ln.match(/^##\s+(.*)/))            { flush(); out.push(''); out.push(bold(clr(C.cyan, '▎ ' + mdInline(m[1])))); continue; }
+    if (m = ln.match(/^###\s+(.*)/))           { flush(); out.push(''); out.push(bold(clr(C.yellow, '• ' + mdInline(m[1])))); continue; }
+    if (m = ln.match(/^>\s?(.*)/))             { flush(); out.push(...mdBlock(m[1], clr(C.gray, '  │ '), MD_WIDTH)); continue; }
+    if (m = ln.match(/^[-*]\s+\[ \]\s+(.*)/))  { flush(); out.push(...mdBlock(m[1], clr(C.gray, '  ○ '), MD_WIDTH)); continue; }
+    if (m = ln.match(/^[-*]\s+\[x\]\s+(.*)/i)) { flush(); out.push(...mdBlock(m[1], clr(C.green, '  ✓ '), MD_WIDTH)); continue; }
+    if (m = ln.match(/^[-*]\s+(.*)/))          { flush(); out.push(...mdBlock(m[1], clr(C.cyan, '  • '), MD_WIDTH)); continue; }
+    if (m = ln.match(/^(\d+)\.\s+(.*)/))       { flush(); out.push(...mdBlock(m[2], clr(C.cyan, `  ${m[1]}. `), MD_WIDTH)); continue; }
+
+    paragrafo.push(ln);
+    if (hardBreak) flush();   // quebra de linha explicita do markdown: nao junta com a proxima
+  }
+  flush();
+  return out;
+}
+
+function abrirReadme(num) {
+  const entry = APP.projIndice?.[num - 1];
+  if (!entry) return `  Projeto nº ${num} não encontrado.`;
+  const readmePath = path.join(PROJECTS_DIR, entry.nivel, entry.pj, 'README.md');
+  if (!fs.existsSync(readmePath)) {
+    APP.readmeLines = [clr(C.gray, 'Este projeto ainda não tem README.md.')];
+  } else {
+    APP.readmeLines = renderMarkdown(fs.readFileSync(readmePath, 'utf8'));
+  }
+  APP.projReadmeAtual = entry;
+  APP.readmeScroll = 0;
+  APP.projView = 'readme';
+  return null;
 }
 
 // ── AULAS ────────────────────────────────────────────────────────────────────
@@ -614,6 +895,85 @@ function buildAulas() {
   return o;
 }
 
+// ── GITHUB (SIMULADO) ────────────────────────────────────────────────────────
+// Nao e um GitHub de verdade — e uma leitura das mesmas tarefas do backlog,
+// so que apresentada no vocabulario de Issues/PRs/Actions. Nenhum estado novo
+// e inventado aqui, tudo vem do sprint.json que ja existe.
+
+function issuesDoBacklog(s) {
+  return s.tasks.map(t => {
+    const fechada = t.status === 'done';
+    const cor     = fechada ? C.magenta : C.green;
+    const icon    = fechada ? '●' : '○';
+    const estado  = fechada ? 'CLOSED' : 'OPEN';
+    const num     = `#${t.id}`.padEnd(5);
+    const titulo  = (t.title.length > 44 ? t.title.slice(0,43)+'…' : t.title).padEnd(44);
+    return `  ${clr(cor,icon)} ${clr(C.gray,num)} ${titulo} ${clr(cor,estado)}`;
+  });
+}
+
+function prsDoBacklog(s) {
+  return s.tasks.filter(t => t.prNumero).map(t => {
+    let estado, cor;
+    if (t.status === 'done')          { estado = 'MERGEADO';             cor = C.magenta; }
+    else if (t.status === 'revisao')  { estado = 'ABERTO — em revisão';  cor = C.green;   }
+    else                              { estado = 'MUDANÇAS SOLICITADAS'; cor = C.red;     }
+    const num    = `#PR${t.prNumero}`.padEnd(6);
+    const titulo = (t.title.length > 30 ? t.title.slice(0,29)+'…' : t.title).padEnd(30);
+    return `  ${clr(cor,'●')} ${clr(C.gray,num)} ${titulo} ${clr(C.gray,'closes #'+t.id).padEnd(20)} ${clr(cor,estado)}`;
+  });
+}
+
+function actionsDoProjeto(s) {
+  return (s.ciRuns || []).slice().reverse().map(run => {
+    const cor    = run.sucesso ? C.green : C.red;
+    const icon   = run.sucesso ? '✓' : '✗';
+    const estado = run.sucesso ? 'success' : 'failure';
+    const quando = new Date(run.quando).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const numero = `#${run.numero}`.padEnd(4);
+    const proj   = (run.projeto || '—').padEnd(38);
+    return `  ${clr(cor,icon)} run ${clr(C.gray,numero)} ${clr(C.gray,quando)}  ${proj} ${clr(cor,estado)}`;
+  });
+}
+
+function buildGithub() {
+  const s = loadSprint();
+  const TABS = [
+    { key: 'issues',  label: 'Issues',         dados: issuesDoBacklog(s) },
+    { key: 'prs',     label: 'Pull Requests',  dados: prsDoBacklog(s)    },
+    { key: 'actions', label: 'Actions',         dados: actionsDoProjeto(s) },
+  ];
+  const abaAtual = TABS.find(t => t.key === APP.githubTab) || TABS[0];
+  const linhas   = abaAtual.dados.length ? abaAtual.dados : [clr(C.gray, '  (nada por aqui ainda)')];
+
+  const visible = 18;
+  const total   = linhas.length;
+  const scroll  = Math.max(0, Math.min(APP.githubScroll, Math.max(0, total - visible)));
+  APP.githubScroll = scroll;
+
+  const tabLine = TABS.map((t, i) => {
+    const texto = `[${i+1}] ${t.label}`;
+    return t.key === abaAtual.key ? bold(clr(C.cyan, texto)) : clr(C.gray, texto);
+  }).join('   ');
+
+  let o = C.cls + C.hide;
+  o += `╔${LINE}╗\n`;
+  o += cen(bold('DEVTECH SISTEMAS S.A.  ─  GitHub (simulado)')) + '\n';
+  o += row(` ${tabLine}`) + '\n';
+  if (total > visible)
+    o += row(dim(`  [${scroll+1}-${Math.min(scroll+visible,total)} de ${total}]`)) + '\n';
+  o += `╠${LINE}╣\n`;
+
+  const slice = linhas.slice(scroll, scroll + visible);
+  for (const ln of slice) o += row(ln) + '\n';
+  for (let i = slice.length; i < visible; i++) o += row('') + '\n';
+
+  o += `╠${LINE}╣\n`;
+  o += row(dim('  1/2/3  trocar aba   ↑↓  rolar   Esc  voltar ao menu')) + '\n';
+  o += `╚${LINE}╝\n`;
+  return o;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  SPRINT COMMANDS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -622,61 +982,256 @@ function pick(arr, ...args) {
   return arr[Math.floor(Math.random() * arr.length)](...args);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  GITFLOW — so verificacao (leitura), nunca cria/troca/commita nada sozinho.
+//  O simulador so avisa se a branch atual nao bate com a esperada; quem roda
+//  os comandos de git e sempre o aluno.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function gitBranchAtual() {
+  try {
+    const res = spawnSync('git', ['branch', '--show-current'], { cwd: ROOT, encoding: 'utf8' });
+    if (res.status !== 0) return null; // nao e repo git, git nao instalado, etc.
+    return res.stdout.trim() || null;  // vazio = HEAD destacado
+  } catch { return null; }
+}
+
+function slugProjeto(pj) {
+  return pj.replace(/^\d+-/, ''); // "01-calculadora-financeira" -> "calculadora-financeira"
+}
+
+function branchEsperadaProjeto(projetoAtual) {
+  if (!projetoAtual) return null;
+  const pj = projetoAtual.split('/')[1];
+  return `feature/${slugProjeto(pj)}`;
+}
+
+// O dev não escolhe o projeto — recebe o que tá na fila do próprio nível.
+// Acha o primeiro projeto ainda não entregue dentro da pasta do nível atual.
+function proximoProjetoNivel() {
+  const p  = loadProgress();
+  const lv = getLevel(p.xp).lv;
+  const nivelDir = path.join(PROJECTS_DIR, lv.folder);
+  if (!fs.existsSync(nivelDir)) return null;
+  const projetos = fs.readdirSync(nivelDir)
+    .filter(pj => fs.statSync(path.join(nivelDir, pj)).isDirectory())
+    .sort();
+  for (const pj of projetos) {
+    if (!fs.existsSync(path.join(nivelDir, pj, '.concluido')))
+      return { nivel: lv.folder, pj, rel: `${lv.folder}/${pj}` };
+  }
+  return null; // tudo entregue neste nivel
+}
+
+// Prazo da sprint (dias corridos) varia com o nivel — nao faz sentido um
+// projeto de Estagiario ter os mesmos 15 dias de um de Senior. O projeto
+// "06" de cada nivel e sempre o integrador (mistura tudo que foi visto),
+// entao ganha alguns dias a mais mesmo dentro do mesmo nivel.
+function prazoSprintPara(nivelFolder, pjNome) {
+  const lv = LEVELS.find(l => l.folder === nivelFolder);
+  const base = lv?.sprintDias || 7;
+  const ehIntegrador = /^06-|integrador/i.test(pjNome);
+  return ehIntegrador ? base + 3 : base;
+}
+
+// "1h 30m" / "2h" / "2h 30m" → horas decimais (1.5 / 2 / 2.5)
+function parseEstimativaTexto(txt) {
+  const m = txt.match(/(\d+)\s*h(?:\s*(\d+)\s*m)?/i);
+  if (!m) return null;
+  const h = parseInt(m[1], 10), min = m[2] ? parseInt(m[2], 10) : 0;
+  return +(h + min / 60).toFixed(2);
+}
+
+// O nome da sprint e a estimativa não são o dev que inventa — já vêm
+// definidos no README do projeto (é o QA/PM que decide isso). Lê de lá.
+// A seção de tarefas varia de nome ("Tarefas", "Tarefas para o Sprint",
+// "Tarefas sugeridas para o Sprint"...) e de formato: uns já vêm como
+// comando (`add texto`), outros como checklist (`- [ ] texto`). Aceita
+// os dois e devolve só os títulos, prontos pra virar tarefas no backlog.
+function extrairTarefas(raw) {
+  const linhas = raw.split('\n');
+  let dentro = false;
+  const tarefas = [];
+  for (const ln of linhas) {
+    if (/^#+\s*.*tarefas/i.test(ln)) { dentro = true; continue; }
+    if (dentro && /^#+\s/.test(ln)) break; // proxima secao do README, para
+    if (!dentro) continue;
+    const cmd = ln.match(/^add\s+(.+)/i);
+    const chk = ln.match(/^-\s*\[[ xX]?\]\s*(.+)/);
+    if (cmd) tarefas.push(cmd[1].trim());
+    else if (chk) tarefas.push(chk[1].trim().replace(/`/g, ''));
+  }
+  return tarefas;
+}
+
+function metaDoProjeto(nivel, pj) {
+  const readmePath = path.join(PROJECTS_DIR, nivel, pj, 'README.md');
+  if (!fs.existsSync(readmePath)) return {};
+  const raw = fs.readFileSync(readmePath, 'utf8');
+  const sprintM = raw.match(/\*\*Sprint:\*\*\s*(.+)/);
+  const estM    = raw.match(/\*\*Estimativa:\*\*\s*(.+)/);
+  return {
+    sprint: sprintM ? sprintM[1].trim() : null,
+    estimativaHoras: estM ? parseEstimativaTexto(estM[1]) : null,
+    tarefas: extrairTarefas(raw),
+  };
+}
+
 const RESP = {
-  done:  [(id)=>[NPC.lead,`Tarefa #${id} aprovada no code review.`], (id)=>[NPC.qa,`Testei #${id}. Passou.`], (id)=>[NPC.dev,`Arrasou na #${id}!`]],
-  start: [(id)=>[NPC.lead,`#${id} em andamento. Avisa se travar.`], (id)=>[NPC.dev,`Boa sorte na #${id}!`]],
-  add:   [()=>[NPC.pm,`Task adicionada.`], ()=>[NPC.lead,`Boa task.`]],
-  sprint:[()=>[NPC.pm,`Nova sprint! Foco.`], ()=>[NPC.dev,`Bora codar!`]],
-  pausar:[()=>[NPC.dev,`Ate mais!`], ()=>[NPC.lead,`Salva antes de sair.`]],
-  retomar:[()=>[NPC.dev,`Bem-vindo de volta!`], ()=>[NPC.lead,`Bora terminar.`]],
+  start:     [(id)=>[NPC.lead,`#${id} em andamento. Avisa se travar.`], (id)=>[NPC.dev,`Boa sorte na #${id}!`]],
+  revisar:   [(id)=>[NPC.qa,`Recebi a #${id}, vou dar uma olhada.`], (id)=>[NPC.dev,`Mandei a #${id} pra revisão. Torcendo.`]],
+  aprovado:  [(id)=>[NPC.qa,`Testei #${id}. Passou, aprovado! Pode commitar.`], (id)=>[NPC.lead,`#${id} aprovada no code review. Não esquece o commit no imperativo.`]],
+  reprovado: [(id)=>[NPC.qa,`#${id} voltou — achei um problema, dá uma olhada de novo.`], (id)=>[NPC.lead,`#${id} precisa de ajuste antes de fechar.`]],
+  pausar:    [()=>[NPC.dev,`Ate mais!`], ()=>[NPC.lead,`Salva antes de sair.`]],
+  retomar:   [()=>[NPC.dev,`Bem-vindo de volta!`], ()=>[NPC.lead,`Bora terminar.`]],
 };
+
+// Simula o tempo que o QA leva pra olhar a tarefa (8-20s reais). Ao resolver,
+// recarrega o sprint do disco (o dev pode ter mexido em outra coisa nesse
+// meio-tempo) e só aplica se a tarefa ainda estiver esperando revisão.
+// A resolucao da revisao do QA e por DATA (task.revisaoResolveEm), nao por
+// setTimeout em memoria — um setTimeout morre se o simulador for fechado
+// antes da hora, deixando a tarefa presa em "EM REVISAO" pra sempre. Assim,
+// ela resolve sozinha na proxima vez que o loop rodar, mesmo que isso seja
+// so quando o jogador abrir o app de novo, dias depois.
+function checkRevisoesQA() {
+  const s = loadSprint();
+  if (!s) return;
+  let mudou = false;
+
+  for (const task of s.tasks) {
+    if (task.status !== 'revisao') continue;
+
+    // tarefa presa de uma sessao anterior (fechada antes da hora, ou de
+    // uma versao mais antiga do simulador) — resolve agora mesmo.
+    if (!task.revisaoResolveEm) {
+      task.revisaoResolveEm = new Date().toISOString();
+      task.revisaoAprovada  = Math.random() < 0.7;
+    }
+    if (Date.now() < new Date(task.revisaoResolveEm).getTime()) continue;
+
+    if (task.revisaoAprovada) {
+      task.status = 'done'; task.completedAt = new Date().toISOString();
+      task.tempoGastoMs = tempoAtivoTotal(s); // registro do tempo real gasto nela
+      const p = loadProgress(); p.xp += 25; saveProgress(p);
+      const [n, t] = pick(RESP.aprovado, task.id); pushMessage(n, t);
+      APP._lastRevisaoMsg = clr(C.green, `★ #${task.id} aprovada pelo QA! +25 XP`);
+      // acabou essa tarefa — o cronometro fica livre ate a proxima ser iniciada
+      s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
+    } else {
+      task.status = 'doing';
+      const [n, t] = pick(RESP.reprovado, task.id); pushMessage(n, t);
+      APP._lastRevisaoMsg = clr(C.yellow, `#${task.id} voltou pra desenvolvimento — o QA pediu ajuste.`);
+      // mesma tarefa continua ativa — o relogio dela volta a rodar de onde parou
+      s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
+    }
+    delete task.revisaoResolveEm;
+    delete task.revisaoAprovada;
+    mudou = true;
+  }
+
+  if (mudou) {
+    saveSprint(s);
+    if (APP.screen === 'sprint') APP.lastFb = APP._lastRevisaoMsg;
+  }
+}
 
 function sprintCommand(input, s) {
   const parts = input.trim().split(/\s+/);
   const cmd   = parts[0]?.toLowerCase();
-  const rest  = parts.slice(1).join(' ');
+  // aspas sao opcionais aqui (nao e um shell) — se o jogador envolver o
+  // texto em "..." ou '...' por habito, elas sao removidas em vez de
+  // virarem parte literal do nome.
+  const rest  = parts.slice(1).join(' ').replace(/^(["'])(.*)\1$/, '$2');
 
   switch (cmd) {
-    case 'add': {
-      if (!rest) return '  Use: add <titulo>';
-      s.tasks.push({ id: s.nextId++, title: rest, status: 'backlog' });
-      saveSprint(s);
-      const [n,t] = pick(RESP.add); pushMessage(n,t);
-      return `${clr(C.green,'+')} Tarefa #${s.nextId-1} adicionada.`;
+    // as tarefas ja vem do README quando "projeto" atribui — nao tem mais
+    // por que o dev cadastrar a mao, entao nao existe mais comando pra isso.
+    case 'ver': {
+      const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
+      if (!task) return '  Use: ver <nº> (número da tarefa)';
+      const statusLabel = {
+        backlog: clr(C.gray,'BACKLOG'), doing: clr(C.yellow,'DESENVOLVENDO'),
+        revisao: clr(C.magenta,'EM REVISÃO'), done: clr(C.green,'CONCLUÍDO'),
+      }[task.status] || task.status;
+      return `  #${task.id} [${statusLabel}]  ${task.title}`;
     }
     case 'start': {
       const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
       if (!task) return `  Tarefa #${id} nao encontrada.`;
-      if (task.status==='done') return `  #${id} ja concluida.`;
+      if (task.status==='done')    return `  #${id} ja concluida.`;
+      if (task.status==='revisao') return `  #${id} ta em revisao com o QA. Aguarde.`;
+      if (task.status==='doing')   return `  #${id} ja esta em andamento.`;
+
+      // uma tarefa de cada vez, na ordem — nao da pra pular pra frente
+      // nem ter duas ativas ao mesmo tempo. So avanca quando a anterior
+      // for finalizada e aprovada pelo QA (status 'done').
+      const outraAtiva = s.tasks.find(t => t.id!==id && (t.status==='doing' || t.status==='revisao'));
+      if (outraAtiva)
+        return clr(C.yellow, `  [QA] Termina a #${outraAtiva.id} antes de começar outra — uma de cada vez.`);
+
+      const pendenteAntes = s.tasks
+        .filter(t => t.id < id && t.status !== 'done')
+        .sort((a,b) => a.id - b.id)[0];
+      if (pendenteAntes)
+        return clr(C.yellow, `  [QA] Segue a ordem do backlog — termina a #${pendenteAntes.id} antes de partir pra #${id}.`);
+
       task.status = 'doing'; task.startedAt = new Date().toISOString();
-      if (!s.sessaoIniciadaEm) { s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null; }
+      // o cronometro agora e por tarefa: zera aqui e passa a valer contra
+      // a estimativa dessa tarefa especifica (nao mais o total do projeto).
+      s.tempoAtivoMs = 0; s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
+      s.tarefaAtivaId = id;
       saveSprint(s);
       const [n,t] = pick(RESP.start,id); pushMessage(n,t);
-      return `${clr(C.yellow,'>')} #${id} em andamento.`;
+      const est = task.estimativaHoras || s.estimativaHoras;
+
+      // gitflow — so verifica a branch atual (leitura), nunca cria/troca nada.
+      // O aviso completo vai pro painel de MENSAGENS (que ja suporta varias
+      // linhas) — a linha de retorno aqui fica curta, de proposito.
+      const esperada = branchEsperadaProjeto(s.projetoAtual);
+      const atual    = gitBranchAtual();
+      let avisoBranch = '';
+      if (esperada && atual && atual !== esperada) {
+        pushMessage(NPC.lead, `Branch errada pra codar ("${atual}"). Recomendado: git checkout -b ${esperada}`);
+        avisoBranch = clr(C.yellow, '  [branch errada — ver MENSAGENS]');
+      }
+      return `${clr(C.yellow,'>')} #${id} em andamento.  ${clr(C.gray,`(estimativa: ${est}h)`)}${avisoBranch}`;
     }
+    // quem finaliza a tarefa agora e o QA, nao o dev — manda pra revisao
     case 'done': {
+      const id = parseInt(rest);
+      return `  Isso quem decide é o QA agora — manda pra revisão: revisar ${isNaN(id) ? '<nº>' : id}`;
+    }
+    case 'revisar': {
       const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
       if (!task) return `  Tarefa #${id} nao encontrada.`;
-      const min = Math.floor((Date.now()-new Date(task.startedAt||Date.now()).getTime())/60000);
-      task.status = 'done'; task.completedAt = new Date().toISOString();
+      if (task.status==='backlog') return `  #${id} nem foi iniciada ainda — use: start ${id}`;
+      if (task.status==='revisao') return `  #${id} ja esta em revisao. Aguarde o QA.`;
+      if (task.status==='done')    return `  #${id} ja concluida.`;
+      task.status = 'revisao'; task.enviadoRevisaoEm = new Date().toISOString();
+      // vira uma PR simulada na primeira vez que sai do backlog pra revisao —
+      // se voltar (reprovada) e for de novo, e a mesma PR, so reaberta.
+      if (!task.prNumero) { task.prNumero = s.nextPr++; task.prBranch = branchEsperadaProjeto(s.projetoAtual); }
+      // resolucao decidida e marcada por DATA (nao setTimeout) — sobrevive
+      // a fechar o simulador antes da hora, veja checkRevisoesQA().
+      const delayMs = 8000 + Math.random() * 12000;
+      task.revisaoResolveEm = new Date(Date.now() + delayMs).toISOString();
+      task.revisaoAprovada  = Math.random() < 0.7;
+      // o dev para de codar enquanto espera — pausa o relogio da sprint
+      if (s.sessaoIniciadaEm) {
+        const el = Date.now() - new Date(s.sessaoIniciadaEm).getTime();
+        s.tempoAtivoMs = (s.tempoAtivoMs||0) + el;
+        s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
+      }
       saveSprint(s);
-      const p = loadProgress(); p.xp += 25; saveProgress(p);
-      const [n,t] = pick(RESP.done,id); pushMessage(n,t);
-      return `${clr(C.green,'★')} #${id} concluida!${min>0?` (${min}m)`:''}  ${clr(C.cyan,'+25 XP')}  (total: ${p.xp} XP)`;
+      const [n,t] = pick(RESP.revisar,id); pushMessage(n,t);
+      return `${clr(C.magenta,'⏳')} #${id} enviada pra revisão do QA. Timer pausado até ele responder.`;
     }
     case 'rm': {
       const id = parseInt(rest), idx = s.tasks.findIndex(t=>t.id===id);
       if (idx===-1) return `  Tarefa #${id} nao encontrada.`;
       s.tasks.splice(idx,1); saveSprint(s);
       return `  #${id} removida.`;
-    }
-    case 'sprint': {
-      if (!rest) return '  Use: sprint <nome>';
-      s.sprint = rest; s.tempoAtivoMs = 0; s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
-      APP.ov80 = false; APP.ov100 = false; APP.ov150 = false;
-      saveSprint(s);
-      const [n,t] = pick(RESP.sprint); pushMessage(n,t);
-      return `${clr(C.green,'>')} Sprint "${rest}" iniciada!`;
     }
     case 'pausar': {
       if (!s.sessaoIniciadaEm) return '  Sprint ja pausada.';
@@ -699,52 +1254,125 @@ function sprintCommand(input, s) {
       s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
       saveSprint(s); return `${clr(C.green,'▶')} Timer iniciado.`;
     }
-    case 'estimativa': {
-      const h = parseFloat(rest);
-      if (isNaN(h)||h<=0) return '  Use: estimativa <horas>';
-      s.estimativaHoras = h; saveSprint(s);
-      APP.ov80=false; APP.ov100=false; APP.ov150=false;
-      return `  Estimativa: ${h}h`;
-    }
     case 'projeto': {
-      if (!rest) return '  Use: projeto <pasta>';
+      const p  = loadProgress();
+      const lv = getLevel(p.xp).lv;
+
+      // nome da sprint e estimativa nao sao o dev que inventa — ja vem
+      // definido no README (quem decide isso e o QA/PM). So atribui o
+      // projeto e copia esses dois campos de la.
+      function atribuir(prox) {
+        const jaEstaAtivo = s.projetoAtual === prox.rel;
+        const meta = metaDoProjeto(prox.nivel, prox.pj);
+        s.projetoAtual = prox.rel;
+        if (meta.sprint)          s.sprint = meta.sprint;
+        if (meta.estimativaHoras) s.estimativaHoras = meta.estimativaHoras;
+        if (!jaEstaAtivo) {
+          s.sprintIniciadaEm = new Date().toISOString(); // sprint real, em dias corridos
+          s.prazoDias = prazoSprintPara(prox.nivel, prox.pj);
+          s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.tempoAtivoMs = 0;
+        }
+        s.extensoesQA = 0;
+        APP.ov80 = false;
+
+        // o "O que fazer" ja diz o que tem que ser feito — poe direto no
+        // BACKLOG, o dev nao precisa copiar linha por linha do README.
+        // So nao repete se o projeto atribuido e ja estava ativo.
+        // A estimativa do README nao e dividida entre as tarefas — cada
+        // uma recebe o valor CHEIO. Dividir deixaria tarefas de poucos
+        // minutos, o que pressiona demais quem ainda ta aprendendo (1.5h,
+        // 2h ou ate 3h por tarefa e razoavel pra quem ta comecando).
+        let adicionadas = 0;
+        const porTarefa = s.estimativaHoras;
+        if (!jaEstaAtivo && meta.tarefas?.length) {
+          for (const titulo of meta.tarefas) {
+            s.tasks.push({ id: s.nextId++, title: titulo, status: 'backlog', estimativaHoras: porTarefa });
+            adicionadas++;
+          }
+        }
+        saveSprint(s);
+
+        const fraseTarefas = adicionadas > 0
+          ? ` Já deixei ${adicionadas} tarefa(s) no backlog, ${porTarefa}h cada.`
+          : '';
+        pushMessage(NPC.qa, `Próximo da fila pra você: "${prox.pj}". Sprint "${s.sprint}", ${s.prazoDias||15} dias corridos.${fraseTarefas}`);
+        return `${clr(C.green,'>')} Projeto atribuído: ${prox.rel}  ${clr(C.gray,`(${s.sprint}, ${s.prazoDias||15}d)`)}${fraseTarefas ? clr(C.cyan, fraseTarefas) : ''}`;
+      }
+
+      // sem argumento: pega o proximo da fila do seu nivel (o normal do dia a dia)
+      if (!rest) {
+        const prox = proximoProjetoNivel();
+        if (!prox) return clr(C.green, `  [QA] Você já entregou tudo do nível ${lv.name}. Aguarde a próxima leva.`);
+        return atribuir(prox);
+      }
+
+      // com argumento: so aceita se for do seu proprio nivel — o dev nao escolhe
+      // livremente entre pastas de outras senioridades.
       const pp = path.join(PROJECTS_DIR, rest);
       if (!fs.existsSync(pp)) return `  Pasta nao encontrada: projects/${rest}`;
-      s.projetoAtual = rest; saveSprint(s);
-      return `  Projeto ativo: ${rest}`;
+      const nivelDoProjeto = rest.split('/')[0];
+      if (nivelDoProjeto !== lv.folder)
+        return clr(C.yellow, `  [QA] Isso não é da sua sprint — é nível ${nivelDoProjeto}, você tá em ${lv.name}. Digite "projeto" sem nada pra ver o que é seu.`);
+      const pjNome = rest.split('/').slice(1).join('/');
+      return atribuir({ nivel: nivelDoProjeto, pj: pjNome, rel: rest });
     }
     case 'concluir': {
       if (!s.projetoAtual) return '  Nenhum projeto ativo.';
       const marker = path.join(PROJECTS_DIR, s.projetoAtual, '.concluido');
       if (fs.existsSync(marker)) return '  Projeto ja entregue.';
+      // so entrega o projeto com o backlog inteiro finalizado e aprovado —
+      // a "revisao" do projeto todo pressupoe que cada item ja passou pela dele.
+      const pendentes = s.tasks.filter(t => t.status !== 'done');
+      if (pendentes.length > 0) {
+        const exemplo = pendentes[0];
+        return clr(C.yellow, `  [QA] Ainda tem ${pendentes.length} tarefa(s) pendente(s) (ex.: #${exemplo.id}). Termina e aprova tudo antes de entregar.`);
+      }
       const projPath = path.join(PROJECTS_DIR, s.projetoAtual);
       if (!fs.existsSync(path.join(projPath, 'node_modules')))
         return `  Execute "npm install" na pasta do projeto primeiro.`;
       const res = spawnSync('npm', ['test','--','--silent'], { cwd: projPath, encoding:'utf8', stdio:'pipe' });
+
+      // registra a Action (CI) rodada, passe ou falhe — igual um workflow
+      // de verdade que roda a cada tentativa de entrega.
+      s.ciRuns = s.ciRuns || [];
+      s.ciRuns.push({
+        numero: s.ciRuns.length + 1,
+        quando: new Date().toISOString(),
+        projeto: s.projetoAtual,
+        sucesso: res.status === 0,
+      });
+      if (s.ciRuns.length > 30) s.ciRuns = s.ciRuns.slice(-30);
+      saveSprint(s);
+
       if (res.status !== 0) {
         pushMessage(NPC.qa, 'Entrega bloqueada — testes falhando. Corrige antes de entregar.');
         return clr(C.red,'  [QA] Bloqueado: testes nao passaram. Rode "npm test" no projeto.');
       }
-      // Overtime penalty
-      const ativo = tempoAtivoTotal(s);
-      const estMs = s.estimativaHoras * 3600000;
-      const ratio = ativo / estMs;
+      // As penalidades de atraso ja foram aplicadas ao vivo (checkOvertime,
+      // toda vez que o QA precisou reestimar) — aqui so fecha as contas.
       const p2 = loadProgress();
       let penMsg = '';
-      if (ratio > 2.0) {
-        p2.xp = Math.max(0, p2.xp - 20); p2.atrasadas = (p2.atrasadas||0)+1; p2.avisos = (p2.avisos||0)+1;
-        penMsg = clr(C.red,' (-20 XP — atraso grave, aviso registrado)');
-        pushMessage(NPC.lead, 'Sprint muito acima do estimado. Precisamos conversar sobre planejamento.');
-      } else if (ratio > 1.0) {
-        p2.xp = Math.max(0, p2.xp - 10); p2.atrasadas = (p2.atrasadas||0)+1;
-        penMsg = clr(C.yellow,' (-10 XP — entrega atrasada)');
-        pushMessage(NPC.pm, 'Projeto entregue com atraso. Na proxima sprint vamos refinar melhor.');
+      if (s.extensoesQA > 0) {
+        p2.atrasadas = (p2.atrasadas || 0) + 1;
+        penMsg = clr(C.yellow, ` (entregue com ${s.extensoesQA} reestimativa(s) no caminho)`);
+        pushMessage(NPC.pm, 'Projeto entregue, mas com reestimativas no meio do caminho. Vamos calibrar melhor a proxima.');
       }
       saveProgress(p2);
       fs.writeFileSync(marker, new Date().toISOString());
       pushMessage(NPC.qa,   'Suite completa passou. Aprovado!');
       pushMessage(NPC.lead, `Entregue! Otimo trabalho, ${p2.name}.`);
       pushMessage(NPC.pm,   'Entrega registrada. Proximo projeto disponivel.');
+
+      // gitflow — so avisa (leitura), nao mexe em nada. O merge de verdade
+      // (feature -> develop) e sempre manual, feito pelo aluno.
+      const esperada = branchEsperadaProjeto(s.projetoAtual);
+      const atual    = gitBranchAtual();
+      if (esperada && atual === esperada) {
+        pushMessage(NPC.lead, `Testes ok e entregue — agora faz o merge: git checkout develop && git merge ${esperada}`);
+      } else if (esperada && atual && atual !== 'main' && atual !== 'develop') {
+        pushMessage(NPC.lead, `Confere se commitou tudo em "${atual}" antes de mergear em develop.`);
+      }
+
       return clr(C.green,'★ ENTREGUE! Testes OK.') + penMsg;
     }
     case '': case undefined: return null;
@@ -796,30 +1424,132 @@ function tickEmpresa() {
   if (APP._xpPrev !== undefined && p.xp > APP._xpPrev)
     pushFeed(NPC.lead, `+${p.xp - APP._xpPrev} XP ganho. Total: ${p.xp} XP.`, 'ok');
   APP._xpPrev = p.xp;
+
+  // Promocao de nivel — hora de "fechar a release": sugere subir uma
+  // release/* pra main e taguear (so aviso narrativo, nunca automatico).
+  const nivelIdx = getLevel(p.xp).idx;
+  if (APP._nivelPrevIdx !== undefined && nivelIdx > APP._nivelPrevIdx) {
+    const lv = getLevel(p.xp).lv;
+    pushFeed(NPC.lead, `Promovido pra ${lv.name}! Hora de fechar a release.`, 'ok');
+    pushMessage(NPC.lead, `Parabéns, ${lv.name}! Sugestão: git checkout -b release/${lv.folder} a partir de develop, testa tudo, e daí sim merge em main + tag.`);
+  }
+  APP._nivelPrevIdx = nivelIdx;
 }
 
+// Quando a sprint estoura, o dev nao reestima sozinho — o QA negocia mais
+// tempo com o PM. Mas isso nao e de graca: cada reestimativa vira um aviso
+// de desempenho registrado na hora (nao só na entrega), com XP cada vez
+// maior perdido se acontecer de novo na mesma sprint.
+// O tempo estourado agora e por TAREFA (o QA te passa uma coisa de cada
+// vez, cada uma com seu prazo) — nao mais o total do projeto. O prazo do
+// projeto inteiro (calendario, 15 dias) e outra coisa, ver checkPrazoSprint.
 function checkOvertime() {
   const s = loadSprint();
-  if (!s || !s.sessaoIniciadaEm) return;
+  if (!s || !s.sessaoIniciadaEm || !s.tarefaAtivaId) return;
+  const tarefa = s.tasks.find(t => t.id === s.tarefaAtivaId && t.status === 'doing');
+  if (!tarefa) return;
+
+  const estimativa = tarefa.estimativaHoras || s.estimativaHoras;
   const ativo = tempoAtivoTotal(s);
-  const estMs = s.estimativaHoras * 3600000;
+  const estMs = estimativa * 3600000;
   const pct   = ativo / estMs;
 
   if (pct >= 0.8 && !APP.ov80) {
     APP.ov80 = true;
-    pushMessage(NPC.pm, 'Atencao! Sprint chegando ao limite. Quanto falta?');
-    if (APP.screen === 'sprint') APP.lastFb = clr(C.yellow,'⚡ 80% do tempo estimado usado. Foco!');
+    pushMessage(NPC.pm, `Atencao! Tarefa #${tarefa.id} chegando no limite do tempo. Quanto falta?`);
+    if (APP.screen === 'sprint') APP.lastFb = clr(C.yellow,`⚡ #${tarefa.id}: 80% do tempo estimado usado. Foco!`);
   }
-  if (pct >= 1.0 && !APP.ov100) {
-    APP.ov100 = true;
-    pushMessage(NPC.lead, 'Sprint estourada. O que aconteceu? Me fala.');
-    pushMessage(NPC.qa, 'Vou pausar regressao ate a sprint fechar.');
-    if (APP.screen === 'sprint') APP.lastFb = clr(C.red,'⚠ SPRINT ESTOURADA. Penalidade de XP na entrega.');
+
+  if (pct >= 1.0) {
+    const extensao = Math.max(0.25, +(estimativa * 0.5).toFixed(2));
+    s.extensoesQA = (s.extensoesQA || 0) + 1;
+    tarefa.estimativaHoras = +(estimativa + extensao).toFixed(2);
+    saveSprint(s);
+
+    const penalidade = 5 * s.extensoesQA; // -5, -10, -15... escalando por sprint
+    const p = loadProgress();
+    p.xp     = Math.max(0, p.xp - penalidade);
+    p.avisos = (p.avisos || 0) + 1;
+    saveProgress(p);
+
+    pushMessage(NPC.qa, `Tarefa #${tarefa.id} estourou o tempo. Consegui +${extensao}h com o PM, mas isso vira aviso no seu histórico.`);
+    pushMessage(NPC.lead, s.extensoesQA > 1
+      ? `Essa já é a ${s.extensoesQA}ª reestimativa dessa sprint. Precisamos conversar sobre planejamento.`
+      : 'Uma tarefa estourou o tempo. Da próxima vez avisa antes de chegar no limite.');
+    if (APP.screen === 'sprint')
+      APP.lastFb = clr(C.red, `⚠ #${tarefa.id} estourou — QA deu +${extensao}h  (aviso registrado, -${penalidade} XP)`);
+
+    APP.ov80 = false; // reseta pra poder alertar de novo dentro do novo prazo
   }
-  if (pct >= 1.5 && !APP.ov150) {
-    APP.ov150 = true;
-    pushMessage(NPC.pm, 'Cliente perguntando sobre o prazo. Consegue prever?');
+}
+
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function diasEntreDatas(a, b) {
+  const da = new Date(a + 'T00:00:00'), db = new Date(b + 'T00:00:00');
+  return Math.round((db - da) / 86400000);
+}
+
+// Simulador vivo: a sprint corre em dias corridos de verdade (15 dias),
+// mesmo com o app fechado — nao e so tempo ativo de codigo. Se o prazo
+// bater, o QA renegocia com o PM, mas isso soma no mesmo contador de
+// avisos/XP que o estouro de horas (as duas coisas pesam junto).
+function checkPrazoSprint() {
+  const s = loadSprint();
+  if (!s || !s.projetoAtual || !s.sprintIniciadaEm) return;
+
+  const prazo    = s.prazoDias || 15;
+  const decorrido = Math.floor((Date.now() - new Date(s.sprintIniciadaEm).getTime()) / 86400000);
+  if (decorrido < prazo) return;
+
+  const extensaoDias = 7;
+  s.prazoDias = prazo + extensaoDias;
+  s.extensoesQA = (s.extensoesQA || 0) + 1;
+  saveSprint(s);
+
+  const penalidade = 5 * s.extensoesQA;
+  const p = loadProgress();
+  p.xp     = Math.max(0, p.xp - penalidade);
+  p.avisos = (p.avisos || 0) + 1;
+  saveProgress(p);
+
+  pushMessage(NPC.pm, `Os ${prazo} dias da sprint bateram. Consegui +${extensaoDias} dias com o cliente, mas isso vira aviso.`);
+  pushMessage(NPC.qa, 'Nao da pra esticar prazo pra sempre — precisamos fechar isso logo.');
+  if (APP.screen === 'sprint')
+    APP.lastFb = clr(C.red, `⚠ Prazo de ${prazo} dias estourou — QA conseguiu +${extensaoDias}d  (aviso registrado, -${penalidade} XP)`);
+}
+
+// Roda uma vez por dia real (mesmo com o app fechado nesse meio-tempo):
+// pratica diaria de verdade tem consequencia se falhar, igual no trampo.
+function checkAcessoDiario() {
+  const p = loadProgress();
+  const hoje = localDateStr(new Date());
+
+  if (!p.ultimoAcessoEm) {
+    p.ultimoAcessoEm = hoje; p.diasSeguidos = 1; saveProgress(p);
+    return null; // primeiro acesso, nada a cobrar ainda
   }
+  if (p.ultimoAcessoEm === hoje) return null; // ja acessou hoje
+
+  const diff = diasEntreDatas(p.ultimoAcessoEm, hoje);
+  p.ultimoAcessoEm = hoje;
+
+  if (diff === 1) {
+    p.diasSeguidos = (p.diasSeguidos || 0) + 1;
+    saveProgress(p);
+    return { tipo: 'streak', dias: p.diasSeguidos };
+  }
+
+  const faltados = diff - 1;
+  p.diasFaltados  = (p.diasFaltados || 0) + faltados;
+  p.avisos        = (p.avisos || 0) + 1;
+  const penalidade = 5 * faltados;
+  p.xp            = Math.max(0, p.xp - penalidade);
+  p.diasSeguidos  = 1;
+  saveProgress(p);
+  return { tipo: 'falta', dias: faltados, xp: penalidade };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -835,6 +1565,7 @@ function render() {
     case 'dev':      out = buildDev();     break;
     case 'projetos': out = buildProjetos(); break;
     case 'aulas':    out = buildAulas();   break;
+    case 'github':   out = buildGithub();  break;
   }
   process.stdout.write(out);
 }
@@ -847,7 +1578,9 @@ function goTo(screen) {
   APP.screen   = screen;
   APP.inputBuf = '';
   APP.lastFb   = null;
-  if (screen === 'aulas') { APP.aulaLines = []; APP.aulasScroll = 0; }
+  if (screen === 'aulas')    { APP.aulaLines = []; APP.aulasScroll = 0; }
+  if (screen === 'projetos') { APP.projetosScroll = 0; APP.projView = 'list'; }
+  if (screen === 'github')   { APP.githubScroll = 0; }
 }
 
 if (!process.stdin.isTTY) {
@@ -861,13 +1594,19 @@ process.stdin.setEncoding('utf8');
 
 process.stdin.on('data', (key) => {
   if (key === '\x03') { gracefulExit(); return; }     // Ctrl+C
-  if (key === '\x1b') { goTo('menu'); render(); return; } // Esc
+  if (key === '\x1b') {
+    if (APP.screen === 'projetos' && APP.projView === 'readme') {
+      APP.projView = 'list';     // volta pro quadro, não pro menu
+      render(); return;
+    }
+    goTo('menu'); render(); return; // Esc
+  }
 
   // Number shortcuts from menu
   const n = parseInt(key);
-  if (APP.screen === 'menu' && n >= 1 && n <= 5) {
+  if (APP.screen === 'menu' && n >= 1 && n <= 6) {
     APP.menuSel = n - 1;
-    goTo(['empresa','sprint','dev','projetos','aulas'][n-1]);
+    goTo(['empresa','sprint','dev','projetos','aulas','github'][n-1]);
     render(); return;
   }
 
@@ -875,8 +1614,9 @@ process.stdin.on('data', (key) => {
     case 'menu':     handleMenuKey(key); break;
     case 'sprint':   handleSprintKey(key); break;
     case 'dev':      handleDevKey(key); break;
-    case 'projetos': render(); break;
+    case 'projetos': handleProjetosKey(key); break;
     case 'aulas':    handleAulasKey(key); break;
+    case 'github':   handleGithubKey(key); break;
     case 'empresa':  render(); break;
   }
 });
@@ -884,7 +1624,7 @@ process.stdin.on('data', (key) => {
 function handleMenuKey(key) {
   if (key === '\x1b[A' || key === 'k') APP.menuSel = (APP.menuSel + MENU_ITEMS.length - 1) % MENU_ITEMS.length;
   if (key === '\x1b[B' || key === 'j') APP.menuSel = (APP.menuSel + 1) % MENU_ITEMS.length;
-  if (key === '\r') goTo(['empresa','sprint','dev','projetos','aulas'][APP.menuSel]);
+  if (key === '\r') goTo(['empresa','sprint','dev','projetos','aulas','github'][APP.menuSel]);
   render();
 }
 
@@ -926,6 +1666,45 @@ function handleAulasKey(key) {
   if (key === '\x1b[B' || key === 'j') APP.aulasScroll++;
   if (key === '\x1b[5~') APP.aulasScroll = Math.max(0, APP.aulasScroll - 10); // PgUp
   if (key === '\x1b[6~') APP.aulasScroll += 10;                                // PgDn
+  render();
+}
+
+function handleGithubKey(key) {
+  if (key === '1' || key === '2' || key === '3') {
+    APP.githubTab = ['issues','prs','actions'][Number(key)-1];
+    APP.githubScroll = 0;
+  }
+  if (key === '\x1b[A') APP.githubScroll = Math.max(0, APP.githubScroll - 1);
+  if (key === '\x1b[B') APP.githubScroll++;
+  if (key === '\x1b[5~') APP.githubScroll = Math.max(0, APP.githubScroll - 10); // PgUp
+  if (key === '\x1b[6~') APP.githubScroll += 10;                                 // PgDn
+  render();
+}
+
+function handleProjetosKey(key) {
+  if (APP.projView === 'readme') {
+    if (key === '\x1b[A') APP.readmeScroll = Math.max(0, APP.readmeScroll - 1);
+    if (key === '\x1b[B') APP.readmeScroll++;
+    if (key === '\x1b[5~') APP.readmeScroll = Math.max(0, APP.readmeScroll - 10); // PgUp
+    if (key === '\x1b[6~') APP.readmeScroll += 10;                                 // PgDn
+    render();
+    return;
+  }
+
+  if (key === '\x1b[A') APP.projetosScroll = Math.max(0, APP.projetosScroll - 1);
+  if (key === '\x1b[B') APP.projetosScroll++;
+  if (key === '\x1b[5~') APP.projetosScroll = Math.max(0, APP.projetosScroll - 10); // PgUp
+  if (key === '\x1b[6~') APP.projetosScroll += 10;                                   // PgDn
+
+  if (key === '\r') {
+    const num = parseInt(APP.inputBuf.trim(), 10);
+    APP.lastFb = isNaN(num) ? null : abrirReadme(num);
+    APP.inputBuf = '';
+  } else if (key === '\x7f' || key === '\x08') {
+    APP.inputBuf = APP.inputBuf.slice(0, -1);
+  } else if (key.charCodeAt(0) >= 32) {
+    APP.inputBuf += key;
+  }
   render();
 }
 
@@ -1014,10 +1793,26 @@ process.on('SIGTERM', () => gracefulExit());
 
 process.stdout.write(C.hide);
 APP._xpPrev = loadProgress().xp;
+APP._nivelPrevIdx = getLevel(APP._xpPrev).idx;
 
 boot().then(() => {
   pushFeed(NPC.ops, `Sistema iniciado. Bem-vindo, ${loadProgress().name}.`, 'ok');
   pushFeed(NPC.lead, 'Foco nas entregas. Bom trabalho hoje.');
+
+  const acesso = checkAcessoDiario();
+  if (acesso?.tipo === 'falta') {
+    const pl = acesso.dias === 1 ? 'dia' : 'dias';
+    pushMessage(NPC.lead, `Sumiu ${acesso.dias} ${pl}. Isso conta como aviso de desempenho — não deixa a rotina cair.`);
+    pushMessage(NPC.pm, 'O cliente fica de olho na constância da equipe.');
+    pushFeed(NPC.lead, `${acesso.dias} ${pl} sem aparecer. Aviso registrado (-${acesso.xp} XP).`, 'alerta');
+  } else if (acesso?.tipo === 'streak' && acesso.dias > 1 && acesso.dias % 5 === 0) {
+    pushMessage(NPC.lead, `${acesso.dias} dias seguidos de acesso! Ritmo sólido.`);
+    pushFeed(NPC.lead, `${acesso.dias} dias seguidos de prática. Mandou bem.`, 'ok');
+  }
+
+  // resolve na hora qualquer revisao que devia ter terminado enquanto o
+  // app estava fechado (ou uma que ficou presa de uma versao anterior)
+  checkRevisoesQA();
 
   render();
 
@@ -1026,6 +1821,10 @@ boot().then(() => {
     APP.frame++;
     tickEmpresa();
     checkOvertime();
-    if (APP.screen === 'empresa' || APP.screen === 'menu') render();
+    checkPrazoSprint();
+    checkRevisoesQA();
+    // sprint tambem redesenha sozinho — senao o "Hora:"/tempo da tarefa
+    // ativa so atualiza quando o jogador aperta uma tecla, parecendo parado.
+    if (APP.screen === 'empresa' || APP.screen === 'menu' || APP.screen === 'sprint') render();
   }, 150);
 });

@@ -1,7 +1,0 @@
-{
-  "name": "03-analisador-cobertura",
-  "version": "1.0.0",
-  "description": "DevTech Sistemas — Sênior I",
-  "scripts": { "test": "jest" },
-  "devDependencies": { "jest": "^29.7.0" }
-}

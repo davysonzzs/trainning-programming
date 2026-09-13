@@ -1,7 +1,0 @@
-{
-  "name": "06-sistema-distribuido-integrador",
-  "version": "1.0.0",
-  "description": "DevTech Sistemas — Sênior II",
-  "scripts": { "test": "jest" },
-  "devDependencies": { "jest": "^29.7.0" }
-}

@@ -1,7 +1,0 @@
-{
-  "name": "01-query-builder",
-  "version": "1.0.0",
-  "description": "DevTech Sistemas — Pleno II",
-  "scripts": { "test": "jest" },
-  "devDependencies": { "jest": "^29.7.0" }
-}

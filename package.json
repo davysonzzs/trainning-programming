@@ -1,0 +1,11 @@
+{
+  "name": "devtech-sistemas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DEVTECH SISTEMAS S.A. — Simulador de treinamento em terminal",
+  "main": "devtech.js",
+  "scripts": {
+    "start": "node devtech.js",
+    "resetar": "node scripts/reset.js"
+  }
+}

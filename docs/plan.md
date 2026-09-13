@@ -43,18 +43,22 @@ src/
 .github/
 └── copilot-instructions.md  ← configura Copilot como QA Ana
 projects/
-├── estagiario/         ← 6 projetos
-├── trainee/            ← 6 projetos
-├── junior-1/           ← 6 projetos
-├── junior-2/           ← 6 projetos
-├── junior-3/           ← 6 projetos
-├── pleno-1/            ← 6 projetos
-├── pleno-2/            ← 6 projetos
-├── pleno-3/            ← 6 projetos
-├── senior-1/           ← 6 projetos
-├── senior-2/           ← 6 projetos
-└── senior-3/           ← 6 projetos
+├── estagiario/         ← 30 mini-projetos (Fase 1 do aulas.md — ver seção abaixo)
+├── trainee/            ← aguardando (Fase 2 — ainda não construída)
+├── junior-1/           ← aguardando (Fase 3)
+├── junior-2/           ← aguardando (Fase 5)
+├── junior-3/           ← aguardando (Fase 6)
+├── pleno-1/            ← aguardando (Fase 7)
+├── pleno-2/            ← aguardando (Fase 8)
+├── pleno-3/            ← aguardando (Fase 9)
+├── senior-1/           ← aguardando (Fase 11)
+├── senior-2/           ← aguardando (Fase 13)
+└── senior-3/           ← aguardando (Fase 14)
 ```
+
+Cada nível "aguardando" tem só um `README.md` (placeholder "aguardando novo cliente") —
+sem subpastas, então não conta como projeto pro simulador. Serão reconstruídos um nível
+de cada vez, seguindo o padrão descrito em **"Plano: trilha completa por fase"** abaixo.
 
 ---
 
@@ -62,17 +66,62 @@ projects/
 
 1. Abrir `node devtech.js` → Menu → **Quadro de Projetos** para ver o próximo projeto
 2. Ler `projects/<nivel>/NN-nome/README.md` — cenário, spec e dicas
-3. No menu → **Painel de Sprint**:
-   - `projeto estagiario/01-calculadora-financeira`
-   - `sprint "Estagiário — Calculadora Financeira"`
-   - `estimativa 1.5`
-   - `add <tarefa>` para cada subtarefa
-   - `start <id>` / `done <id>` (+25 XP por tarefa)
-4. Criar o arquivo de implementação na pasta do projeto
-5. Testar: `cd projects/<nivel>/<projeto> && npm install && npm test`
-6. Quando todos os testes passarem: voltar ao sprint, digitar `concluir`
-   - O sistema roda `npm test` automaticamente antes de aceitar a entrega
-   - Se sprint estourada: penalidade de XP aplicada automaticamente
+3. No menu → **Painel de Sprint**, digitar só `projeto` (sem argumento) — o QA atribui o
+   próximo projeto pendente do nível atual, já com sprint, estimativa e backlog lidos
+   direto do README (nada disso é digitado à mão — ver `add`/`sprint`/`estimativa`
+   removidos do changelog em `UPDATES.md`)
+4. `start <id>` na primeira tarefa do backlog (só uma ativa por vez, na ordem)
+5. Criar o arquivo de implementação na pasta do projeto (nome exato no README, seção
+   "Arquivo a criar") e rodar `npm install && npm test` até passar
+6. `revisar <id>` manda pro QA — ele aprova (+25 XP, timer despausa) ou reprova sozinho
+   depois de alguns segundos
+7. Com todo o backlog `done`: `concluir` — roda `npm test` de novo e marca `.concluido`
+   - Sprint estourada (tarefa ou prazo do projeto): penalidade de XP + aviso, aplicada na
+     hora do estouro, não só na entrega (ver `UPDATES.md`)
+
+---
+
+## Plano: trilha completa por fase (para quando o usuário pedir a próxima)
+
+A Fase 1 (`projects/estagiario/`) foi reconstruída em **30 mini-projetos** — 3 por
+tópico da fase, do "Hello World" até o nível do antigo projeto único — porque o pulo de
+"variáveis e operadores" direto pra "implementar 5 funções de regra de negócio" era
+grande demais pra quem está começando agora. As fases 2 a 14 do `.devtech/aulas.md` ainda
+não foram reconstruídas nesse formato — os níveis correspondentes têm só um
+`README.md` placeholder ("aguardando novo cliente"). Quando o usuário pedir uma fase
+nova, repetir exatamente este processo:
+
+1. **Mapear a fase → nível.** Cada fase do `aulas.md` já tem um nível de carreira
+   correspondente na tabela `LEVELS` de `devtech.js` (campo `fase`) — ex.: Fase 2 →
+   Trainee, Fase 3 → Junior I. Usar a pasta `projects/<folder-do-nivel>/`.
+2. **Contar os tópicos da fase** no `aulas.md` (cada linha `- Tópico: ...` sob o
+   `## FASE N`) e multiplicar por 3 — esse é o total de mini-projetos daquele nível.
+   Fases maiores (ex.: Fase 6 — React, com 14 tópicos) geram bem mais projetos que a
+   Fase 1; é esperado, não é bug.
+3. **Numerar linearmente** `01` a `NN` dentro da pasta do nível (mesma decisão já tomada
+   pro usuário na Fase 1 — sem subpasta por tópico).
+4. **Nomear as pastas como projeto real da empresa**, nunca com nome de tópico
+   pedagógico — ex. `08-validador-sensor-estacionamento`, não `08-condicionais`. O README
+   de cada um é que carrega o contexto de negócio (bug fix / feature / refactor pedido por
+   um cliente/setor fictício da DevTech) e a linha **`Tópico da trilha:`** dizendo qual
+   tópico da fase aquele projeto pratica e a posição dele na trilha (`(2/3)` etc).
+5. **Progressão dentro de cada trio de tópico:** projeto 1 introduz o conceito isolado
+   com a menor superfície possível; projeto 2 aprofunda; projeto 3 mistura com o que já
+   foi visto nos tópicos anteriores da mesma fase (nunca com tópicos de fases futuras).
+6. **Todo README segue o template já usado**: Contexto → Nível/Sprint/Estimativa/
+   Prioridade/Tópico da trilha → O que fazer (checklist) → Arquivo a criar → Especificação
+   das funções → Como testar → Dicas (uma por função, nunca a resposta pronta) →
+   Tarefas sugeridas para o Sprint (bloco ` ```add ...``` `, uma linha por tarefa — é o
+   que popula o backlog sozinho via `extrairTarefas()`).
+7. **Todo projeto precisa de teste real (Jest) e passar de fato.** Antes de considerar o
+   nível pronto, escrever uma implementação de referência (fora do repositório, ex. numa
+   pasta de sandbox) e rodar `npm test` contra os specs de cada mini-projeto — é assim que
+   a Fase 1 pegou um bug de spec (função que dependia de campo não calculado ainda) antes
+   de chegar no usuário. Specs ambíguos custam caro pra quem está aprendendo.
+8. **`estimativaHoras` sempre no formato `Xh Ym`** no README (`parseEstimativaTexto` exige
+   um dígito de hora — `0h 20m` funciona, `20m` sozinho não).
+9. Ao terminar o nível, atualizar `README.md` (se algo do fluxo mudou), `UPDATES.md`
+   (uma linha curta) e remover o placeholder "aguardando novo cliente" daquele nível.
 
 ---
 

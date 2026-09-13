@@ -1,0 +1,38 @@
+# Atualizações
+
+## 2026-09-13
+- 🐛 Bordas não quebram mais com nomes/textos longos
+- ✨ `npm run resetar` — zera progresso, sprint e projetos entregues
+- ✨ Quadro de Projetos `[4]`: paginação com `↑↓` / `PgUp/PgDn`
+- ✨ Status `PENDENTE` / `EM ANDAMENTO` / `ENTREGUE` agora aparece nos projetos
+- ✨ Dá pra ler o README do projeto direto no simulador (formatado, sem markdown cru)
+- 🐛 Colunas do quadro Backlog/Em Andamento/Concluído (`[2]`) alinhadas
+- ✨ Comandos da sprint mais claros na própria tela + aspas viraram opcionais
+- 🔒 Dev não escolhe mais o projeto livremente — `projeto` atribui o próximo pendente do seu nível, e bloqueia projetos de outra senioridade
+- ✨ Mensagens compridas que não cabem na tela agora quebram em duas linhas, em vez de cortar
+- 🔒 Nome da sprint e estimativa de horas não são mais inventados pelo dev — vêm do README (QA/PM), copiados automaticamente ao rodar `projeto`
+- ✨ Quadro de Sprint `[2]` ganhou a coluna **EM REVISÃO**: quem fecha a tarefa agora é o QA (`revisar <nº>`), não o dev — e o timer pausa sozinho enquanto ela espera revisão
+- 🐛 7 READMEs de projeto citavam um comando `node sprint.js add "..."` de uma versão antiga do sistema — corrigido pra sintaxe atual (`add <tarefa>`)
+- 📖 Tutorial explica melhor onde achar a lista de tarefas no README (o nome da seção varia por projeto)
+- ✨ `projeto` já coloca as tarefas do README direto no BACKLOG — não precisa mais digitar `add` uma por uma
+- 🗑️ Comando `add` removido (tarefa nunca mais é cadastrada à mão)
+- ✨ Novo comando `ver <nº>` — mostra o título completo da tarefa, já que as colunas do quadro cortam títulos longos
+- 🗑️ Comandos `sprint <nome>` e `estimativa <horas>` removidos — vinham do README, não fazia sentido o dev digitar
+- 🔒 Sprint estourou? O QA renegocia mais tempo sozinho, mas isso agora vira aviso de desempenho + XP perdido na hora (escalando: -5, -10...), não só na entrega final
+- ✨ Sprint agora tem prazo real de 15 dias corridos (conta mesmo com o app fechado), além do cronômetro de horas ativas — estourou os dias, mesma consequência dos avisos/XP
+- ✨ Simulador vivo: sumir um dia inteiro sem abrir o app conta como falta de verdade (aviso + XP perdido) — streak de dias seguidos visível na Ficha do Desenvolvedor
+- 🔒 O tempo estimado agora é **por tarefa** (fatia do README dividida entre os itens do backlog), não mais o total do projeto — a sprint de 15 dias continua sendo do projeto inteiro
+- 🔒 Só dá pra ter uma tarefa em andamento por vez — `start` numa segunda tarefa é bloqueado até a atual ser aprovada
+- 🔒 `concluir` só libera com todo o backlog concluído e aprovado pelo QA
+- ⚖️ Prazo da sprint agora varia por nível (7 dias no Estagiário/Trainee até 15 no Sênior, +3 nos projetos integradores `06`) em vez de 15 dias fixos pra todo mundo
+- 🐛 Corrigido: cada tarefa ganha o tempo **inteiro** do README (1.5h, 2h...), não mais dividido entre as tarefas do backlog — a divisão deixava tarefas de minutos, pressão demais pra quem tá aprendendo
+- 🐛 Corrigido: dava pra pular a ordem do backlog (`start 2` sem nunca ter dado `start 1`) — agora só libera a próxima tarefa da fila depois que a anterior for aprovada
+- 🐛 Corrigido: o relógio (`Hora:`/tempo da tarefa ativa) no Painel de Sprint só atualizava quando você apertava uma tecla — agora conta sozinho em tempo real
+- 🐛 Corrigido: a mensagem ambiente do Painel de Sprint trocava a cada 150ms (rápido demais, parecia um monte de mensagem piscando) — agora troca a cada 15s de verdade
+- 🐛 Corrigido: se o simulador fosse fechado antes do QA "responder" (8-20s), a tarefa ficava presa em EM REVISÃO pra sempre — a resolução agora é por data/hora salva, não por timer em memória, e resolve sozinha (mesmo tarefas já presas de antes desse conserto)
+- 📖 Documentado: o que precisa de internet (Copilot, 1º `npm install`) e o que não precisa (simulador, `git commit`, testes já instalados) — commit continua manual, PR é opcional e nunca contra este repositório
+- ✨ Gitflow: o simulador agora confere (só leitura, via `git branch --show-current`) se você tá na `feature/<projeto>` certa ao dar `start`, e sugere o merge de volta pra `dev/seu-nome` no `concluir` — nunca cria/troca/commita nada sozinho, e funciona 100% offline
+- ✨ Ao subir de nível, o Lead sugere praticar uma `release/<nível>` — o momento de "fechar a release" no Gitflow
+- ✨ Nova tela `[6] GitHub (simulado)` — Issues (backlog), Pull Requests (revisões) e Actions (histórico de `npm test` no `concluir`), tudo lido a partir dos mesmos dados da sprint, sem depender de internet nem conta no GitHub
+- 🔨 Fase 1 (Estagiário) reconstruída do zero: de 6 projetos grandes pra **30 mini-projetos**, 3 por tópico (lógica → variáveis → condicionais → loops → funções → arrays → objetos → recursão → ordenação → busca), do "Hello World" até o integrador — cada README diz qual tópico da trilha (`aulas.md`) aquele projeto pratica
+- 🗑️ Níveis Trainee a Sênior III zerados temporariamente (só `README.md` "aguardando novo cliente") — serão reconstruídos nesse mesmo formato de 3-por-tópico, um nível por vez

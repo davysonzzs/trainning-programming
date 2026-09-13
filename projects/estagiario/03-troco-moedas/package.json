@@ -1,0 +1,11 @@
+{
+  "name": "03-troco-moedas",
+  "version": "1.0.0",
+  "description": "DevTech Sistemas — Estagiario",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

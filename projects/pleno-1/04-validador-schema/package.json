@@ -1,7 +1,0 @@
-{
-  "name": "04-validador-schema",
-  "version": "1.0.0",
-  "description": "DevTech Sistemas — Pleno I",
-  "scripts": { "test": "jest" },
-  "devDependencies": { "jest": "^29.7.0" }
-}

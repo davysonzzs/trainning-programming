@@ -1,7 +1,0 @@
-{
-  "name": "03-revisor-codigo",
-  "version": "1.0.0",
-  "description": "DevTech Sistemas — Sênior III",
-  "scripts": { "test": "jest" },
-  "devDependencies": { "jest": "^29.7.0" }
-}

@@ -1,7 +1,0 @@
-{
-  "name": "06-cli-integrador",
-  "version": "1.0.0",
-  "description": "DevTech Sistemas — Junior I",
-  "scripts": { "test": "jest" },
-  "devDependencies": { "jest": "^29.7.0" }
-}
