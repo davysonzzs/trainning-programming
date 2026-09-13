@@ -16,33 +16,10 @@ Tudo via terminal. Sem interface gráfica. Como deve ser.
 ## Início rápido
 
 ```bash
-# 1. Registre seu nome
-node dev.js --name "Seu Nome"
-
-# 2. Abra o sistema corporativo num terminal e deixe rodando
-node empresa.js
-
-# 3. Num segundo terminal, abra o painel de sprint
-node sprint.js
-
-# 4. Veja os projetos disponíveis
-node projetos.js
-
-# 5. Veja a trilha de estudos
-node aulas.js
+node devtech.js
 ```
 
----
-
-## As cinco telas
-
-| Comando | O que é |
-|---|---|
-| `node empresa.js` | Sistema corporativo — deixe aberto enquanto trabalha |
-| `node sprint.js` | Painel de tarefas da sprint — onde você trabalha |
-| `node dev.js` | Sua ficha: nível, XP, salário e progresso |
-| `node projetos.js` | Quadro de missões — todos os projetos e status |
-| `node aulas.js` | Trilha de estudos — 14 fases do Estagiário ao Sênior III |
+Um arquivo. Todas as telas. Navegue com ↑↓ e Enter.
 
 ---
 
@@ -50,11 +27,13 @@ node aulas.js
 
 ```
 /
-├── empresa.js         ← sistema corporativo (deixe sempre aberto)
-├── sprint.js          ← painel de sprint (terminal interativo)
-├── dev.js             ← ficha do desenvolvedor
-├── projetos.js        ← quadro de projetos/missões
-├── aulas.js           ← trilha de estudos (14 fases)
+├── devtech.js         ← PONTO DE ENTRADA — executa tudo
+├── src/               ← módulos internos (não execute diretamente)
+│   ├── empresa.js
+│   ├── sprint.js
+│   ├── dev.js
+│   ├── projetos.js
+│   └── aulas.js
 │
 ├── projects/
 │   └── estagiario/    ← projetos do nível atual
@@ -129,7 +108,7 @@ npm test      # passa = projeto resolvido
 
 Quando terminar todos os projetos do nível atual:
 
-1. `node projetos.js` — confirme que todos estão como `[ENTREGUE]`
+1. No menu **Quadro de Projetos** — confirme que todos estão como `[ENTREGUE]`
 2. Abra o chat do **Claude Code** e diga: **"Terminei os projetos de Estagiário, pode avaliar?"**
 3. O Claude Code revisa e, se aprovado, cria os projetos do próximo nível
 

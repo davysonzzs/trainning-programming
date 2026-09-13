@@ -850,6 +850,11 @@ function goTo(screen) {
   if (screen === 'aulas') { APP.aulaLines = []; APP.aulasScroll = 0; }
 }
 
+if (!process.stdin.isTTY) {
+  console.error('\n  DevTech requer um terminal interativo.\n  Execute: node devtech.js\n');
+  process.exit(1);
+}
+
 process.stdin.setRawMode(true);
 process.stdin.resume();
 process.stdin.setEncoding('utf8');

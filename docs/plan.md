@@ -29,10 +29,12 @@ Esc em qualquer tela volta ao menu. Ctrl+C sai (pausa a sprint automaticamente).
 
 ```
 devtech.js              ← PONTO DE ENTRADA — executa tudo
-sprint.js               ← standalone opcional (mesmos dados)
-dev.js                  ← standalone opcional
-projetos.js             ← standalone opcional
-empresa.js              ← standalone opcional
+src/
+├── empresa.js          ← módulo interno (não execute diretamente)
+├── sprint.js           ← módulo interno
+├── dev.js              ← módulo interno
+├── projetos.js         ← módulo interno
+└── aulas.js            ← módulo interno
 .devtech/
 ├── progress.json       ← XP, nome, avisos, atrasos (não edite manualmente)
 ├── sprint.json         ← estado da sprint ativa
