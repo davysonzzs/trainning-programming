@@ -15,7 +15,7 @@ qualquer função maior que você vai escrever daqui pra frente.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Utilitários Matemáticos  
-**Estimativa:** 0h 50m  
+**Estimativa:** 1h 45m  
 **Prioridade:** Baixa  
 **Tópico da trilha:** Fase 1 — Fundamentos › Funções: parâmetros, retorno e escopo (1/3)
 
@@ -68,11 +68,25 @@ npm test
 
 ### Dicas (tente sozinho antes de usar)
 
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 5 — Funções: parâmetros, retorno e escopo**
+> em [`05-funcoes-parametros-retorno-escopo.md`](../../../aulas/fase-01-fundamentos-de-programacao/05-funcoes-parametros-retorno-escopo.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
+
 **`dobrar` / `quadrado` / `ehPositivo`** — Cada uma é uma única operação com `return`.
 Não precisa de variável intermediária.
 
 **`arredondarPara`** — `Math.round` só arredonda pra inteiro. Pra arredondar com casas
-decimais, um truque comum é multiplicar por `10^casas`, arredondar, e dividir de volta.
+decimais, um truque comum é multiplicar por `10^casas`, arredondar, e dividir de volta —
+o `10 ** casas` (ou `Math.pow(10, casas)`) calcula essa potência de 10:
+
+```js
+function arredondar2Casas(valor) {
+  return Math.round(valor * 100) / 100;
+}
+arredondar2Casas(3.14159); // 3.14
+```
+`arredondarPara` faz a mesma conta, só que com `casas` variável em vez de `2` fixo.
 
 **`media`** — Some os três, divida por três, e chame `arredondarPara` no resultado com
 `2` casas — reaproveitar uma função dentro da outra é uma prática comum.

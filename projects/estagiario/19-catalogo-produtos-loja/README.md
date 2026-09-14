@@ -15,7 +15,7 @@ criar, ler propriedades e adicionar um método a ele.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Catálogo de Produtos  
-**Estimativa:** 0h 50m  
+**Estimativa:** 2h  
 **Prioridade:** Baixa  
 **Tópico da trilha:** Fase 1 — Fundamentos › Objetos: propriedades, métodos e referências (1/3)
 
@@ -69,6 +69,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 7 — Objetos: propriedades, métodos e referências**
+> em [`07-objetos.md`](../../../aulas/fase-01-fundamentos-de-programacao/07-objetos.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`criarProduto`** — Um objeto literal: `{ nome: nome, preco: preco, estoque: estoque }`
 — ou, como os nomes da propriedade e da variável são iguais, você pode simplesmente

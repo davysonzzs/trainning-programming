@@ -15,7 +15,7 @@ de cada dado recebido antes de aceitar o cadastro — é aqui que entram os tipo
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Validador de Cadastro  
-**Estimativa:** 0h 45m  
+**Estimativa:** 1h  
 **Prioridade:** Média  
 **Tópico da trilha:** Fase 1 — Fundamentos › Variáveis, tipos de dados e operadores (1/3)
 
@@ -70,11 +70,27 @@ npm test
 
 ### Dicas (tente sozinho antes de usar)
 
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 2 — Variáveis, tipos de dados e operadores**
+> em [`02-variaveis-tipos-operadores.md`](../../../aulas/fase-01-fundamentos-de-programacao/02-variaveis-tipos-operadores.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
+
 **`tipoDe`** — Existe uma palavra-chave do JavaScript que devolve o tipo de qualquer
 valor como string, sem precisar escrever nenhum `if`.
 
 **`nomeValido`** — Você precisa combinar duas condições com o operador lógico "E"
-(`&&`). Lembre que comparar tipo usa o resultado de `tipoDe` (ou o mesmo operador direto).
+(`&&`) — as duas do lado precisam ser `true` pro resultado ser `true`. Exemplo
+genérico (checando se um produto pode ser vendido, não é o seu caso, é só pra
+ver o `&&` funcionando):
+
+```js
+function podeVender(preco, estoque) {
+  return preco > 0 && estoque > 0;
+}
+podeVender(10, 5);  // true  — as duas condições passaram
+podeVender(10, 0);  // false — a segunda falhou
+```
+Lembre que comparar tipo usa o resultado de `tipoDe` (ou o mesmo operador direto).
 
 **`idadeValida`** — Cuidado: `'25' >= 18` funciona em JavaScript porque ele converte o
 texto pra número sozinho — mas a regra aqui é mais rígida, o tipo **também** precisa ser

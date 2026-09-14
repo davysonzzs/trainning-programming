@@ -20,7 +20,7 @@ consertar sem quebrar mais nada, e deixar melhor do que encontrou.
 
 **Nível:** Estagiário (extra — fora da sequência numerada, mas vale os mesmos XP)
 **Sprint:** Estagiário — Manutenção e Refatoração
-**Estimativa:** 1h
+**Estimativa:** 2h 30m  
 **Prioridade:** Alta (chamado de cliente)
 **Tópico da trilha:** Fase 1 — pratica funções, condicionais e (o assunto principal
 aqui) **manutenção de código existente**, que não é um tópico numerado da trilha mas
@@ -57,6 +57,51 @@ aqui) **manutenção de código existente**, que não é um tópico numerado da 
 **Pode (e deve) mudar:**
 - Tudo dentro de `legado.js`: nomes de variável, estrutura do código, eliminar
   duplicação, adicionar uma constante em vez de número mágico solto no meio do código
+
+---
+
+### Dicas (tente sozinho antes de usar)
+
+> 📘 Esse projeto pratica funções e condicionais — se algum dos dois ainda não
+> fez sentido, revise o
+> [Tópico 5 — Funções](../../../aulas/fase-01-fundamentos-de-programacao/05-funcoes-parametros-retorno-escopo.md)
+> ou o
+> [Tópico 3 — Condicionais](../../../aulas/fase-01-fundamentos-de-programacao/03-estruturas-condicionais.md)
+> (ou tecla `[5]` no simulador) antes de mexer no `legado.js`. O assunto
+> principal aqui — manutenção de código existente — não tem tópico numerado,
+> é prática mesmo.
+
+**Achando o bug** — Não saia editando direto. Abra os três blocos (`bronze`,
+`prata`, `ouro`) lado a lado e compare os números um a um contra a
+Especificação abaixo. Um dos três tem um valor que foi copiado do bloco
+errado — é assim que bug de copia-e-cola se disfarça: o código *parece*
+certo até você comparar com a régua de fora (o teste, ou a especificação).
+
+**Refatorando sem quebrar** — Troque um `if` de cada vez e rode `npm test`
+depois de cada troca — se algo quebrar, você sabe exatamente qual mudança
+causou. Nunca reescreva a função inteira de uma vez só e só depois rode o
+teste; se der errado, você não vai saber qual parte foi.
+
+**Eliminando a duplicação** — Quando vários `if` fazem a mesma pergunta
+("é maior ou igual a X?") pra decidir entre poucas opções fixas, uma tabela
+(array de objetos, por exemplo) percorrida com `.find()` costuma substituir
+a cadeia toda por um único trecho reutilizável. Exemplo genérico (frete, não
+desconto — a ideia é a mesma, adapte pro seu caso):
+
+```js
+const FAIXAS_FRETE = [
+  { min: 200, valor: 0 },
+  { min: 100, valor: 15 },
+  { min: 0,   valor: 30 },
+];
+
+function calcularFrete(valorCompra) {
+  const faixa = FAIXAS_FRETE.find(f => valorCompra >= f.min);
+  return faixa.valor;
+}
+```
+Repare: adicionar uma faixa nova vira uma linha no array, não mais um `if`
+inteiro — é isso que "eliminar duplicação" quer dizer na prática.
 
 ---
 

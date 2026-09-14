@@ -15,7 +15,7 @@ maior entre dois valores. Mais uma rodada de condicionais, agora sobre números.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Verificador de Vagas  
-**Estimativa:** 0h 45m  
+**Estimativa:** 1h 30m  
 **Prioridade:** Baixa  
 **Tópico da trilha:** Fase 1 — Fundamentos › Estruturas condicionais (if, else, switch) (2/3)
 
@@ -66,6 +66,11 @@ npm test
 
 ### Dicas (tente sozinho antes de usar)
 
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 3 — Estruturas condicionais (if, else, switch)**
+> em [`03-estruturas-condicionais.md`](../../../aulas/fase-01-fundamentos-de-programacao/03-estruturas-condicionais.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
+
 **`ehParOuImpar`** — Reaproveita a mesma ideia do operador `%` que você já usou no
 projeto da calculadora.
 
@@ -75,7 +80,16 @@ nem um nem outro.
 **`maiorEntre`** — Um `if` simples comparando `a > b` já decide qual devolver.
 
 **`estaNoIntervalo`** — Você precisa de duas condições combinadas com `&&`: o número
-tem que ser maior ou igual ao mínimo **e** menor ou igual ao máximo.
+tem que ser maior ou igual ao mínimo **e** menor ou igual ao máximo. Exemplo genérico
+(checando faixa de temperatura segura pra um equipamento, não é o seu caso):
+
+```js
+function dentroDaFaixa(valor, minimo, maximo) {
+  return valor >= minimo && valor <= maximo;
+}
+dentroDaFaixa(36.5, 36, 37.5); // true
+dentroDaFaixa(40,   36, 37.5); // false — passou do máximo
+```
 
 ---
 

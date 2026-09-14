@@ -15,7 +15,7 @@ recursão que existe, e também mostra por que recursão **sem cuidado** pode fi
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Simulador de Crescimento  
-**Estimativa:** 1h  
+**Estimativa:** 2h 30m  
 **Prioridade:** Baixa  
 **Tópico da trilha:** Fase 1 — Fundamentos › Recursão e casos base (3/3)
 
@@ -62,6 +62,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 8 — Recursão e casos base**
+> em [`08-recursao.md`](../../../aulas/fase-01-fundamentos-de-programacao/08-recursao.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`fibonacciRecursivo`** — Dessa vez tem **dois** casos base, não um só: `posicao === 0`
 retorna `0`, e `posicao === 1` retorna `1`. Pra qualquer outra posição, a função é

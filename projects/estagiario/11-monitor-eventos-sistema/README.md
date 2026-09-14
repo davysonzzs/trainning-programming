@@ -15,7 +15,7 @@ volta. Isso é a cara do `while` e do `do-while`.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Monitor de Eventos  
-**Estimativa:** 0h 50m  
+**Estimativa:** 1h 30m  
 **Prioridade:** Média  
 **Tópico da trilha:** Fase 1 — Fundamentos › Estruturas de repetição (for, while, do-while) (2/3)
 
@@ -68,6 +68,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 4 — Estruturas de repetição (for, while, do-while)**
+> em [`04-estruturas-de-repeticao.md`](../../../aulas/fase-01-fundamentos-de-programacao/04-estruturas-de-repeticao.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`contarAteLimite`** — `let i = 1; while (i <= limite) { ... i++ }`. Lembre de tratar o
 caso de `limite` ser `0` ou negativo antes do loop (senão ele nunca entra e retorna certo

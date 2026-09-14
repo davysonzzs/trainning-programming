@@ -15,7 +15,7 @@ tabela automaticamente com `for`.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Tabela de Preços  
-**Estimativa:** 0h 45m  
+**Estimativa:** 1h 30m  
 **Prioridade:** Baixa  
 **Tópico da trilha:** Fase 1 — Fundamentos › Estruturas de repetição (for, while, do-while) (1/3)
 
@@ -64,6 +64,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 4 — Estruturas de repetição (for, while, do-while)**
+> em [`04-estruturas-de-repeticao.md`](../../../aulas/fase-01-fundamentos-de-programacao/04-estruturas-de-repeticao.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`tabelaDePrecos`** — Um `for (let i = 1; i <= 10; i++)` percorrendo de 1 a 10,
 guardando `i * precoUnitario` num array a cada volta.

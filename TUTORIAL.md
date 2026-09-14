@@ -66,72 +66,65 @@ No menu, acesse **[2] Painel de Sprint**. Lá embaixo tem uma barra `>` —
 é nela que você digita os comandos abaixo e aperta Enter (não precisa de
 aspas, mesmo em nomes com espaço).
 
-**Receba o projeto.** Você não escolhe: assim como na vida real, o QA te
-diz o que já tá na sua fila. Digite `projeto` sem nada depois, e o
-sistema atribui o próximo projeto pendente do **seu nível atual**:
+**Receba o lote.** Você não escolhe: assim como na vida real, o QA já
+deixa o **lote da sprint** pronto no board assim que você entra na tela —
+de 1 a 3 projetos, sempre na ordem da trilha (nunca de outra senioridade).
+Não existe comando pra "pegar" projeto — ele já está lá:
 ```
-> projeto
+[QA] Sprint 1: coloquei 2 projeto(s) no seu backlog — 01-mensagens-onboarding,
+     02-guia-preparo-pedido. Prazo: 7 dias corridos.
 ```
-Isso te dá `estagiario/01-mensagens-onboarding` automaticamente — é o
-mesmo que aparece com `○ PENDENTE` no Quadro de Projetos. Quando você
-entregar esse, rode `projeto` de novo pra pegar o próximo da fila (nunca
-um projeto de outra senioridade) — são 30 no total, bem curtos no
-começo, crescendo aos poucos.
+Repare que **já vem tudo pronto** — nome da sprint, estimativa de horas e
+prazo de dias vêm do próprio README de cada projeto (ou são calculados a
+partir de quantos projetos caíram no lote). Quando você entrega o lote
+inteiro, o próximo já entra sozinho — nunca precisa pedir.
 
-Repare que **já vem tudo pronto** — o nome da sprint, a estimativa de
-horas, e o **BACKLOG já entra populado com as tarefas do "O que fazer"**
-do README. Você não digita nada disso, é o QA quem organiza:
-```
-[QA] Próximo da fila pra você: "01-mensagens-onboarding".
-     Sprint "Estagiário — Primeiro Deploy", estimativa 0.33h.
-     Já deixei 4 tarefa(s) no backlog.
-```
-Não existem mais comandos pra você digitar nome de sprint, estimativa ou
-tarefa à mão — nome e estimativa vêm do README, e as tarefas entram
-sozinhas no backlog quando o `projeto` é atribuído.
-
-Se a sprint estourar o tempo estimado, você não perde o acesso nem
-trava: o **QA renegocia mais tempo com o PM automaticamente** — só que
-isso fica registrado como um **aviso de desempenho** (e custa XP, cada
-vez mais se acontecer de novo na mesma sprint: -5 XP na 1ª vez, -10 XP
-na 2ª, e assim por diante). Ou seja, dá pra estourar o prazo sem travar
-o jogo, mas isso pesa no seu histórico — bem diferente de simplesmente
-digitar uma estimativa maior pra você mesmo.
-
-Cada tarefa entra numerada (`#1`, `#2`...) na coluna **BACKLOG**. O
-quadro tem 4 colunas, e você não é quem fecha a tarefa — isso é o QA:
+O board tem 4 colunas — **BACKLOG · ANDAMENTO · EM REVISÃO · CONCLUÍDO**
+— e cada projeto do lote aparece numerado (`[1]`, `[2]`...) numa delas:
 
 ```
-BACKLOG → start <nº> → DESENVOLVENDO → revisar <nº> → EM REVISÃO → CONCLUÍDO
+BACKLOG → start <nº> → ANDAMENTO → revisar <nº> → EM REVISÃO → concluir <nº> → CONCLUÍDO
 ```
 
-- `ver <número>` → mostra o título completo da tarefa. As colunas do
-  quadro são estreitas e cortam títulos longos com "…" — use `ver` quando
-  não der pra ler tudo.
-- `start <número>` → joga pra **DESENVOLVENDO** (começa a valer o timer)
-- `revisar <número>` → manda pra **EM REVISÃO**, com o QA. **O timer da
-  sprint pausa sozinho** enquanto isso — você não tá codando, então não
-  conta como hora trabalhada.
-- O QA responde sozinho depois de alguns segundos: **aprova** (a tarefa
-  vai pra **CONCLUÍDO** e você ganha **+25 XP**) ou **reprova** (ela volta
-  pra **DESENVOLVENDO** pra você ajustar e mandar de novo). O timer volta
-  a rodar assim que ele responde, dos dois jeitos.
-- `rm <número>` → remove a tarefa
+- `ver <nº>` → mostra o status completo do projeto (as colunas do board
+  cortam títulos longos com "…").
+- `start <nº>` → joga o projeto pra **ANDAMENTO** e liga o cronômetro de
+  horas nele. Só um projeto tem o cronômetro ligado por vez, mas dá pra
+  ter **mais de um "em andamento"** ao mesmo tempo — repetir `start` noutro
+  projeto acumula o tempo do que estava ativo e troca o cronômetro pra ele.
+- `revisar <nº>` → manda pra **EM REVISÃO**, com o QA — ele já roda lint +
+  `npm test` de verdade na hora, então quando responder (minutos a até uns
+  dois dias, mesmo com o simulador fechado) o motivo de uma reprovação é
+  sempre real, nunca sorteio.
+- O QA responde sozinho: **aprova** (o projeto some da coluna EM REVISÃO,
+  vira "aprovado" — falta só `concluir <nº>`) ou **reprova** (ele volta pra
+  **ANDAMENTO** com o motivo, pra você ajustar e mandar de novo).
+- `concluir <nº>` → só funciona com o projeto já **aprovado** pelo QA. Roda
+  `npm test` mais uma vez (confirmação final, tipo um CI antes do merge),
+  marca como entregue e dá XP.
 
-Esses comandos (e `pausar`/`retomar`/`concluir`) ficam sempre visíveis
-na própria tela do Painel de Sprint, então não precisa decorar nada.
+Esses comandos (e `pausar`/`retomar`/`commit`) ficam sempre visíveis na
+própria tela do Painel de Sprint, então não precisa decorar nada.
+
+**`commit <mensagem>` é o que salva o jogo em disco.** Sem ele, nada do
+que mudou (XP, sprint, projetos) fica gravado — fechar o simulador sem
+commitar volta pro último commit na próxima vez que abrir. `concluir`
+também salva sozinho, por ser um marco por si só, mas qualquer outro
+progresso (começou um projeto, mandou pra revisão...) só é salvo de
+verdade quando você digita `commit`, exatamente como um commit de Git de
+verdade — é você quem decide a hora.
 
 ---
 
 ## 5. Trabalhe no projeto
 
-Antes de marcar a tarefa como em andamento, corta a feature branch dessa
-sprint (a partir da sua branch pessoal, `dev/seu-nome`):
+Antes de dar `start`, corta a feature branch desse projeto (a partir da sua
+branch pessoal, `dev/seu-nome`):
 ```bash
 git checkout -b feature/mensagens-onboarding
 ```
 
-Aí sim, marque a primeira tarefa como em andamento:
+Aí sim, marque o projeto como em andamento (o cronômetro de horas liga nele):
 ```
 > start 1
 ```
@@ -150,117 +143,108 @@ Crie `mensagens.js` e implemente as funções uma por uma (o nome do arquivo
 está sempre na seção "Arquivo a criar" do README de cada projeto).
 A cada função implementada, rode `npm test` para ver o progresso.
 
-Quando uma tarefa estiver pronta, volte ao painel e manda pra revisão:
+Quando o projeto estiver pronto, volte ao painel e manda pra revisão. Se o
+seu lote tiver mais de um projeto, dá pra já começar o próximo enquanto o
+QA olha o primeiro:
 ```
 > revisar 1
 > start 2
 ```
 
-O QA analisa e responde sozinho — se aprovar, cai em **CONCLUÍDO** e você
-ganha **+25 XP**; se pedir ajuste, ela volta pra **DESENVOLVENDO** e você
-manda `revisar 1` de novo depois de corrigir.
+O QA roda lint + `npm test` de verdade na hora e responde depois (minutos a
+até uns dois dias, mesmo com o simulador fechado) — se aprovar, o projeto
+some da coluna EM REVISÃO e vira "aprovado" (falta só `concluir 1`); se
+reprovar, ele volta pra **ANDAMENTO** com o motivo real do erro, pra você
+ajustar e mandar `revisar 1` de novo.
 
 ---
 
-## 6. Timer e sprint
+## 6. Dois relógios: horas do projeto + prazo do lote
 
-Tem três relógios diferentes rodando ao mesmo tempo:
-
-**Horas ativas — por tarefa.** O QA te passa uma coisa de cada vez, e
-cada uma tem o **tempo inteiro do README** pra ela (não é dividido entre
-as tarefas — cada uma ganha, por exemplo, 1.5h completas, o suficiente
-pra quem ainda tá aprendendo não sentir pressão). Só conta enquanto o
-timer da tarefa *atual* tá rodando — mostrado no topo do Painel de
+**Horas ativas — por projeto.** Cada projeto tem uma estimativa vinda do
+README (mínimo **1h**, crescendo com a complexidade — os primeiros do
+Estagiário ficam perto de 1h, o integrador chega a 4h). Só conta enquanto o
+cronômetro do projeto *ativo* tá rodando — mostrado no topo do Painel de
 Sprint:
 
 | Estado | Exibição |
 |---|---|
-| Normal (< 80%) | `▶ #2: 45m / 1.5h  (faltam 45m)` |
-| Atenção (80%+) | `⚡ #2: 1h 15m / 1.5h  (faltam 15m)` |
-| Estourado | `⚠ ESTOURADO: #2: 1h 35m / 1.5h  (+5m)` |
+| Normal (< 80%) | `▶ #1: 45m / 1h  (faltam 15m)` |
+| Atenção (80%+) | `⚡ #1: 55m / 1h  (faltam 5m)` |
+| Estourado | `⚠ ESTOURADO: #1: 1h 10m / 1h  (+10m)` |
 
 Se precisar pausar e voltar depois:
 ```
 > pausar
 ```
-Feche o terminal. O tempo salvo fica registrado.
-Na próxima vez que abrir, o timer continua de onde parou. **Só dá pra
-ter uma tarefa em andamento por vez, e na ordem do backlog** — `start`
-numa tarefa antes da anterior ser aprovada é bloqueado pelo QA, seja
-porque tem outra em andamento/revisão, seja porque você tentou pular a
-fila (ex.: `start 3` com a `#2` ainda pendente).
+Feche o terminal, o tempo salvo fica registrado. Na próxima vez que abrir
+(depois de `retomar`), o cronômetro continua de onde parou. Só um projeto
+tem o cronômetro ligado por vez — `start` noutro projeto do lote acumula o
+tempo do que estava ativo e troca o cronômetro pra ele, sem perder nada.
 
-**Prazo da sprint — do projeto inteiro.** Em dias **corridos** (nem
-precisa estar com o app aberto — conta feito sprint de verdade), mostrado
-como `Prazo: N dias restantes de M corridos`. A duração varia com a
-senioridade — não faz sentido o projeto `01` do Estagiário levar o mesmo
-prazo de um projeto de Sênior:
+**Prazo da sprint — do LOTE inteiro.** Em dias **corridos** (nem precisa
+estar com o app aberto — conta feito sprint de verdade), mostrado como
+`Prazo: N dias restantes de M corridos` no topo do painel. A duração
+reflete quantos projetos o QA juntou nesse lote, não a sua senioridade:
 
-| Nível | Prazo padrão | Projeto `06` (integrador) |
-|---|---|---|
-| Estagiário / Trainee | 7 dias | 10 dias |
-| Junior I/II/III | 10 dias | 13 dias |
-| Pleno I/II/III | 12 dias | 15 dias |
-| Sênior I/II/III | 15 dias | 18 dias |
+| Projetos no lote | Prazo |
+|---|---|
+| 1 projeto | 3 dias |
+| 2 projetos | 7 dias |
+| 3 projetos (ou qualquer lote com o integrador) | 15 dias |
 
-Se qualquer um dos dois estourar (tarefa ou os dias da sprint), o QA
-renegocia mais tempo automaticamente (+7 dias) — só que isso registra um
-**aviso de desempenho** e tira XP, cada vez mais se acontecer de novo na
-mesma sprint. Não trava o jogo, mas pesa no seu histórico.
+Se qualquer um dos dois relógios estourar (horas do projeto ativo, ou dias
+do lote inteiro sem entregar tudo), o QA renegocia mais tempo
+automaticamente — só que isso registra um **aviso de desempenho** e tira
+XP, cada vez mais se acontecer de novo na mesma sprint. Não trava o jogo,
+mas pesa no seu histórico.
 
-**Prática diária** — o simulador é vivo: cada dia real que passa sem
-você abrir o app é um dia perdido de verdade, não só um número parado.
-Se você sumir um ou mais dias, ao voltar o Lead comenta a ausência, e
-isso também vira aviso + XP perdido (visível na Ficha do Desenvolvedor,
-em "Prática diária"). Entrar todo dia — mesmo que por pouco tempo — é
-parte do jogo, igual seria num emprego de verdade.
+**Prática diária** — o simulador é vivo: cada dia real que passa sem você
+abrir o app é um dia perdido de verdade, não só um número parado. Se você
+sumir um ou mais dias, ao voltar o Lead comenta a ausência, e isso também
+vira aviso + XP perdido (visível na Ficha do Desenvolvedor, em "Prática
+diária"). Entrar todo dia — mesmo que por pouco tempo — é parte do jogo,
+igual seria num emprego de verdade.
 
 ---
 
 ## 7. Entregue o projeto
 
-O QA só aceita a entrega do projeto com **todas as tarefas do backlog
-concluídas e aprovadas** — se sobrar alguma em BACKLOG, DESENVOLVENDO ou
-EM REVISÃO, `concluir` é recusado avisando quantas faltam. Termine e
-revise (`revisar <nº>`) tudo antes de tentar.
+`concluir <nº>` só funciona com o projeto já **aprovado** pelo QA (depois
+de um `revisar <nº>` bem-sucedido):
 
-Com tudo aprovado:
 ```
-> concluir
+> concluir 1
 ```
 
 O sistema vai:
-1. Conferir que não sobrou tarefa pendente
-2. Rodar o **lint** (ESLint) — pega erro de verdade (variável que não
-   existe, código morto...); aviso de estilo não trava a entrega
-3. Rodar `npm test` automaticamente
-4. Se os dois passaram: marcar como `[ENTREGUE]` e notificar os NPCs
-5. Sugerir (pelo `[LEAD]`) fazer o merge da feature de volta:
+1. Conferir que o projeto está aprovado (recusa avisando se ainda não foi
+   pra revisão, ou se voltou reprovado)
+2. Rodar `npm test` mais uma vez — confirmação final, tipo um CI rodando
+   antes do merge
+3. Se passou: marcar como entregue, dar XP e notificar os NPCs
+4. Sugerir (pelo `[LEAD]`) fazer o merge da feature de volta:
    ```bash
    git checkout dev/seu-nome
    git merge feature/mensagens-onboarding
    ```
 
-Se o lint achar **erro** de verdade, a entrega é bloqueada antes mesmo
-de chegar no teste — corrige e roda `concluir` de novo. Pra ver o
-relatório completo sem esperar o `concluir`, rode direto (na raiz do
-repositório, não dentro da pasta do projeto):
-```bash
-npx eslint projects/estagiario/01-mensagens-onboarding
-```
+**Não esqueça de salvar.** `concluir` já salva sozinho (é um marco por si
+só), mas qualquer outro progresso no meio do caminho (começou um projeto,
+mandou pra revisão) só fica gravado em disco de verdade com
+`commit <mensagem>` — sem isso, fechar o simulador sem commitar volta pro
+último commit na próxima vez que abrir.
 
-**A sprint reinicia sozinha.** Assim que você entrega, o backlog zera e
-o próximo projeto da sua fila já entra automaticamente — não precisa
-digitar `projeto` de novo.
+**Quando o lote inteiro é entregue, o próximo já entra sozinho** — de 1 a 3
+projetos novos, na ordem da trilha. Não precisa pedir nada.
 
-Dá uma olhada em **[6] GitHub (simulado)** no menu — sua tarefa `#1`
-aparece como **Issue #1 CLOSED**, o `revisar 1` que você deu virou
-**Pull Request #1 MERGEADO**, e o `concluir` que acabou de rodar aparece
-na aba **Actions** como um workflow `success` (com o resultado do lint e
-dos testes lado a lado). Dá pra ver o **README** do projeto e os
-**Commits** de verdade (via `git log`) direto nas outras abas. É o
-mesmo vocabulário que qualquer time usa no dia a dia — issue, PR, CI —
-só que sem precisar de conta no GitHub.
+Dá uma olhada em **[6] GitHub (simulado)** no menu — o projeto `1` aparece
+como **Issue #1 CLOSED**, o `revisar 1` que você deu virou **Pull Request
+#1 MERGEADO**, e o `concluir` que acabou de rodar aparece na aba
+**Actions** como um workflow `success`. Dá pra ver o **README** do projeto
+e os **Commits** de verdade (via `git log`) direto nas outras abas. É o
+mesmo vocabulário que qualquer time usa no dia a dia — issue, PR, CI — só
+que sem precisar de conta no GitHub.
 
 **A cada 3 projetos entregues**, antes de voltar pro menu aparece um
 **1:1 com o Tech Lead**: um resumo de XP, avisos, atrasos e streak, com
@@ -271,42 +255,36 @@ pra uma review de performance de verdade. Só leitura, Enter volta pro menu.
 
 ## 8. Enquanto o QA revisa, siga em frente
 
-Igual no trampo de verdade: uma revisão pode demorar (o QA simulado leva
-de 8 a 20 segundos; uma PR de verdade pode levar dias). Em vez de ficar
-esperando parado, dá pra adiantar **outro projeto** sem perder o
-progresso do atual:
+Igual no trampo de verdade: uma revisão pode demorar (o QA simulado leva de
+minutos a até uns dois dias; uma PR de verdade também). Em vez de ficar
+esperando parado, se o seu lote tem mais de um projeto, é só começar o
+próximo direto — nenhum comando especial pra "guardar o lugar":
 
 ```
-> revisar 3        (manda a última tarefa disponível pro QA)
-> outro             (pega o próximo projeto da fila, sem descartar o outro)
+> revisar 1        (manda o projeto 1 pro QA — ele sai de "ativo")
+> start 2           (liga o cronômetro no projeto 2, sem perder nada do 1)
 ```
 
-O painel passa a mostrar `⏳ esperando: estagiario/01-...` no topo — é o
-projeto que ficou parado. Quando quiser voltar pra ele (pra conferir se o
-QA já respondeu, ou seguir outra tarefa do backlog dele):
+Quando quiser conferir se o QA já respondeu o projeto que ficou esperando,
+`ver <nº>` mostra o status dele a qualquer momento — não precisa "voltar"
+pra ele, ele continua no board.
 
-```
-> voltar
-```
-
-**Só dá pra ter 2 projetos "em jogo" ao mesmo tempo.** Se os dois
-travarem no QA junto (nada pra iniciar em nenhum dos dois), o painel
-avisa e sugere ir pra **[5] Trilha de Estudos** — é uma boa hora pra
-estudar em vez de ficar só esperando. Entregar um dos dois projetos
-(`concluir`) volta automaticamente pro outro, se ele ainda estiver
+**Se todo o lote travar no QA ao mesmo tempo** (nada pra iniciar, nada
+aprovado esperando `concluir`), o painel avisa e sugere ir pra
+**[5] Trilha de Estudos** — é uma boa hora pra estudar em vez de ficar só
 esperando.
 
 ---
 
 ## 9. Consequências de atraso
 
-Diferente de antes, a penalidade **não espera a entrega** — ela acontece
-na hora em que o estouro rola, e escala a cada vez que se repete na
-mesma sprint:
+A penalidade **não espera a entrega** — ela acontece na hora em que o
+estouro rola (hora do projeto ativo, ou dias do lote inteiro), e escala a
+cada vez que se repete na mesma sprint:
 
 | Estouro (o que aconteceu) | Consequência |
 |---|---|
-| 1ª reestimativa na sprint (tarefa ou prazo do projeto) | -5 XP + 1 aviso |
+| 1ª reestimativa na sprint (horas do projeto ou dias do lote) | -5 XP + 1 aviso |
 | 2ª reestimativa na mesma sprint | -10 XP + 1 aviso |
 | 3ª reestimativa na mesma sprint | -15 XP + 1 aviso (e por aí vai) |
 | Dia inteiro sem abrir o simulador | -5 XP por dia perdido + 1 aviso |
@@ -360,8 +338,10 @@ com a prática até caber no tempo estimado.
 **Esc sempre volta ao menu.**
 Você não precisa fechar e reabrir nada. Navegue entre as telas livremente.
 
-**Ctrl+C salva automaticamente.**
-A sprint é pausada e o tempo ativo é preservado.
+**Ctrl+C pausa, mas não salva.**
+O tempo ativo do projeto fica guardado em memória, mas só vai pro disco de
+verdade com `commit <mensagem>` (ou `concluir`, que salva sozinho). Saiu
+sem commitar? Na próxima vez que abrir, o jogo volta pro último commit.
 
 ---
 

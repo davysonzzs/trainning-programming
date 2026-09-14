@@ -15,7 +15,7 @@ JavaScript de verdade, um por um.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Calculadora Interna  
-**Estimativa:** 0h 40m  
+**Estimativa:** 1h 15m  
 **Prioridade:** Baixa  
 **Tópico da trilha:** Fase 1 — Fundamentos › Variáveis, tipos de dados e operadores (2/3)
 
@@ -70,6 +70,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 2 — Variáveis, tipos de dados e operadores**
+> em [`02-variaveis-tipos-operadores.md`](../../../aulas/fase-01-fundamentos-de-programacao/02-variaveis-tipos-operadores.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`somar`/`subtrair`/`multiplicar`** — Um `return` com o operador certo já resolve cada
 uma. São as quatro operações básicas: `+`, `-`, `*`, `/`.

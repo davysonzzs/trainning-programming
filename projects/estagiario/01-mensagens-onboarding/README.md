@@ -15,7 +15,7 @@ tudo o que vem depois.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Primeiro Deploy  
-**Estimativa:** 0h 20m  
+**Estimativa:** 1h  
 **Prioridade:** Baixa  
 **Tópico da trilha:** Fase 1 — Fundamentos › Lógica de programação: algoritmos e pseudocódigo (1/3)
 
@@ -72,6 +72,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 1 — Lógica de programação: algoritmos e pseudocódigo**
+> em [`01-logica-algoritmos-pseudocodigo.md`](../../../aulas/fase-01-fundamentos-de-programacao/01-logica-algoritmos-pseudocodigo.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`ola`** — É a função mais simples possível: não recebe nada, sempre devolve o mesmo
 texto. O `return` de uma função é o valor que ela "entrega" pra quem chamou.

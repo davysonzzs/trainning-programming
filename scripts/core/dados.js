@@ -16,7 +16,14 @@ const PROGRESS_FILE = path.join(DATA_DIR, 'progress.json');
 
 const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
 
-const AULAS_FILE    = path.join(DATA_DIR, 'aulas.md');
+// AULAS.md fica na raiz do repo (nao em .devtech/) de proposito: e
+// documentacao pra ser lida direto — no editor, no GitHub, sem precisar
+// abrir o simulador — nao um dado interno do jogo. E o indice; o conteudo
+// completo de cada fase (quando existir) mora em AULAS_DIR, um arquivo por
+// topico — ver pastaDaFase()/arquivosDeTopico() em scripts/telas/aulas.js.
+const AULAS_FILE    = path.join(ROOT, 'AULAS.md');
+
+const AULAS_DIR      = path.join(ROOT, 'aulas');
 
 const PROJECTS_DIR  = path.join(ROOT, 'projects');
 
@@ -65,22 +72,21 @@ const RESOLUCOES = [
   [NPC.lead, 'RESOLVIDO: PR de seguranca mergeado.'],
 ];
 
-// sprintDias = duracao padrao da sprint (calendario) pra projetos desse
-// nivel. Nao tem por que um projeto simples de Estagiario levar os mesmos
-// 15 dias corridos de um projeto de Senior — a complexidade cresce com o
-// nivel, entao o prazo cresce junto.
+// O prazo (dias corridos) nao vem mais daqui — desde que a sprint virou
+// um LOTE de projetos, ele depende de quantos projetos foram juntados no
+// lote (3/7/15 dias), nao do nivel. Ver prazoLotePara() em scripts/telas/sprint.js.
 const LEVELS = [
-  { name: 'Estagiário', xpMin: 0,    xpMax: 149,  salary: 'R$ 800–R$ 1.500',     folder: 'estagiario', fase: 1,  sprintDias: 7  },
-  { name: 'Trainee',    xpMin: 150,  xpMax: 349,  salary: 'R$ 2.000–R$ 3.500',   folder: 'trainee',    fase: 2,  sprintDias: 7  },
-  { name: 'Junior I',   xpMin: 350,  xpMax: 599,  salary: 'R$ 3.000–R$ 4.500',   folder: 'junior-1',   fase: 3,  sprintDias: 10 },
-  { name: 'Junior II',  xpMin: 600,  xpMax: 899,  salary: 'R$ 4.000–R$ 5.500',   folder: 'junior-2',   fase: 5,  sprintDias: 10 },
-  { name: 'Junior III', xpMin: 900,  xpMax: 1249, salary: 'R$ 5.000–R$ 7.000',   folder: 'junior-3',   fase: 6,  sprintDias: 10 },
-  { name: 'Pleno I',    xpMin: 1250, xpMax: 1649, salary: 'R$ 6.500–R$ 9.000',   folder: 'pleno-1',    fase: 7,  sprintDias: 12 },
-  { name: 'Pleno II',   xpMin: 1650, xpMax: 2099, salary: 'R$ 8.500–R$ 11.000',  folder: 'pleno-2',    fase: 8,  sprintDias: 12 },
-  { name: 'Pleno III',  xpMin: 2100, xpMax: 2599, salary: 'R$ 10.000–R$ 14.000', folder: 'pleno-3',    fase: 9,  sprintDias: 12 },
-  { name: 'Sênior I',   xpMin: 2600, xpMax: 3149, salary: 'R$ 13.000–R$ 17.000', folder: 'senior-1',   fase: 11, sprintDias: 15 },
-  { name: 'Sênior II',  xpMin: 3150, xpMax: 3749, salary: 'R$ 16.000–R$ 22.000', folder: 'senior-2',   fase: 13, sprintDias: 15 },
-  { name: 'Sênior III', xpMin: 3750, xpMax: null, salary: 'R$ 20.000–R$ 30.000+',folder: 'senior-3',   fase: 14, sprintDias: 15 },
+  { name: 'Estagiário', xpMin: 0,    xpMax: 149,  salary: 'R$ 800–R$ 1.500',     folder: 'estagiario', fase: 1  },
+  { name: 'Trainee',    xpMin: 150,  xpMax: 349,  salary: 'R$ 2.000–R$ 3.500',   folder: 'trainee',    fase: 2  },
+  { name: 'Junior I',   xpMin: 350,  xpMax: 599,  salary: 'R$ 3.000–R$ 4.500',   folder: 'junior-1',   fase: 3  },
+  { name: 'Junior II',  xpMin: 600,  xpMax: 899,  salary: 'R$ 4.000–R$ 5.500',   folder: 'junior-2',   fase: 5  },
+  { name: 'Junior III', xpMin: 900,  xpMax: 1249, salary: 'R$ 5.000–R$ 7.000',   folder: 'junior-3',   fase: 6  },
+  { name: 'Pleno I',    xpMin: 1250, xpMax: 1649, salary: 'R$ 6.500–R$ 9.000',   folder: 'pleno-1',    fase: 7  },
+  { name: 'Pleno II',   xpMin: 1650, xpMax: 2099, salary: 'R$ 8.500–R$ 11.000',  folder: 'pleno-2',    fase: 8  },
+  { name: 'Pleno III',  xpMin: 2100, xpMax: 2599, salary: 'R$ 10.000–R$ 14.000', folder: 'pleno-3',    fase: 9  },
+  { name: 'Sênior I',   xpMin: 2600, xpMax: 3149, salary: 'R$ 13.000–R$ 17.000', folder: 'senior-1',   fase: 11 },
+  { name: 'Sênior II',  xpMin: 3150, xpMax: 3749, salary: 'R$ 16.000–R$ 22.000', folder: 'senior-2',   fase: 13 },
+  { name: 'Sênior III', xpMin: 3750, xpMax: null, salary: 'R$ 20.000–R$ 30.000+',folder: 'senior-3',   fase: 14 },
 ];
 
 function getLevel(xp) {
@@ -125,7 +131,8 @@ function loadSprint() {
   if (!fs.existsSync(SPRINT_FILE)) {
     const init = { sprintNum: 0, nextId: 1, nextPr: 1, projetos: [],
       projetoAtivoId: null, projetoAtual: null,
-      tempoAtivoMs: 0, sessaoIniciadaEm: null, pausadoEm: null, ciRuns: [] };
+      tempoAtivoMs: 0, sessaoIniciadaEm: null, pausadoEm: null, ciRuns: [],
+      loteAtribuidoEm: null, lotePrazoDias: null, loteExtensoesQA: 0 };
     _sprintCache = init;
     return init;
   }
@@ -144,6 +151,12 @@ function loadSprint() {
     if (!('sessaoIniciadaEm' in d)) d.sessaoIniciadaEm = null;
     if (!('pausadoEm'        in d)) d.pausadoEm        = null;
     if (!('ciRuns'           in d)) d.ciRuns           = [];
+    // migrando de uma sprint anterior sem prazo de lote (ou com prazo por
+    // projeto, do modelo antigo) — comeca sem prazo definido; o proximo
+    // garantirLote() da tela de sprint preenche assim que rodar de novo.
+    if (!('loteAtribuidoEm'  in d)) d.loteAtribuidoEm  = null;
+    if (!('lotePrazoDias'    in d)) d.lotePrazoDias    = null;
+    if (!('loteExtensoesQA'  in d)) d.loteExtensoesQA  = 0;
     _sprintCache = d;
     return d;
   } catch { return null; }
@@ -254,4 +267,4 @@ function checkAcessoDiario() {
   return { tipo: 'falta', dias: faltados, xp: penalidade };
 }
 
-module.exports = { ROOT, DATA_DIR, SPRINT_FILE, PROGRESS_FILE, MESSAGES_FILE, AULAS_FILE, PROJECTS_DIR, NPC, MSGS_AMBIENTE, INCIDENTES, RESOLUCOES, LEVELS, getLevel, PROGRESS_DEFAULT, loadProgress, saveProgress, loadSprint, saveSprint, loadMessages, pushMessage, tempoAtivoTotal, fmtMs, horaAtual, dataAtual, contarProjetos, localDateStr, diasEntreDatas, checkAcessoDiario, persistirJogo, haAlteracoesNaoSalvas };
+module.exports = { ROOT, DATA_DIR, SPRINT_FILE, PROGRESS_FILE, MESSAGES_FILE, AULAS_FILE, AULAS_DIR, PROJECTS_DIR, NPC, MSGS_AMBIENTE, INCIDENTES, RESOLUCOES, LEVELS, getLevel, PROGRESS_DEFAULT, loadProgress, saveProgress, loadSprint, saveSprint, loadMessages, pushMessage, tempoAtivoTotal, fmtMs, horaAtual, dataAtual, contarProjetos, localDateStr, diasEntreDatas, checkAcessoDiario, persistirJogo, haAlteracoesNaoSalvas };

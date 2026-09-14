@@ -15,7 +15,7 @@ comparação.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Ranking de Funcionários  
-**Estimativa:** 1h 15m  
+**Estimativa:** 2h 45m  
 **Prioridade:** Média  
 **Tópico da trilha:** Fase 1 — Fundamentos › Algoritmos de ordenação (bubble sort, selection sort) (3/3)
 
@@ -68,6 +68,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 9 — Algoritmos de ordenação (bubble sort, selection sort)**
+> em [`09-algoritmos-de-ordenacao.md`](../../../aulas/fase-01-fundamentos-de-programacao/09-algoritmos-de-ordenacao.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`ordenarPorNota`** — É o mesmo algoritmo que você já fez, mudando só o que é
 comparado: em vez de `numeros[i]` você compara `funcionarios[i].nota`, e a troca de

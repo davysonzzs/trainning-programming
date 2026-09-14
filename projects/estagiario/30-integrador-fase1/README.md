@@ -16,7 +16,7 @@ promoção para Trainee.
 
 **Nível:** Estagiário (Projeto Final)  
 **Sprint:** Estagiário — Relatório Integrador  
-**Estimativa:** 2h 30m  
+**Estimativa:** 4h  
 **Prioridade:** Alta  
 **Tópico da trilha:** Fase 1 — Fundamentos de Programação (projeto integrador — usa todos os 10 tópicos da fase)
 
@@ -86,6 +86,10 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Travou? Esse projeto usa os 10 tópicos da Fase 1 juntos — revise
+> qualquer um deles em [`README.md`](../../../aulas/fase-01-fundamentos-de-programacao/README.md) (ou tecla `[5]`
+> no simulador, Trilha de Estudos) antes de chamar o Copilot.
 
 **`calcularFaturamento`** — Soma de todos os `valor`. Você já fez isso antes em projetos anteriores. Array vazio deve retornar `0`.
 

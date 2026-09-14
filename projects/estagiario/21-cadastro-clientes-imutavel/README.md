@@ -14,7 +14,7 @@ uma nova estrutura, nunca modificam a existente.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Cadastro de Clientes  
-**Estimativa:** 2h  
+**Estimativa:** 2h 30m  
 **Prioridade:** Média  
 **Tópico da trilha:** Fase 1 — Fundamentos › Objetos: propriedades, métodos e referências (3/3)
 
@@ -78,6 +78,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 7 — Objetos: propriedades, métodos e referências**
+> em [`07-objetos.md`](../../../aulas/fase-01-fundamentos-de-programacao/07-objetos.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **Imutabilidade — a regra central** — Se você usar `clientes.push(...)` ou `clientes[i].ativo = false`, você está mutando. O teste vai pegar isso. Sempre retorne um novo array/objeto.
 

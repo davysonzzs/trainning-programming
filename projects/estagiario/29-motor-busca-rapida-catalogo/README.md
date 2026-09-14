@@ -15,7 +15,7 @@ elemento do meio e decidindo pra qual lado continuar procurando.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Motor de Busca Rápida  
-**Estimativa:** 1h 15m  
+**Estimativa:** 2h 45m  
 **Prioridade:** Média  
 **Tópico da trilha:** Fase 1 — Fundamentos › Algoritmos de busca (linear e binária) (2/3)
 
@@ -63,6 +63,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 10 — Algoritmos de busca (linear e binária)**
+> em [`10-algoritmos-de-busca.md`](../../../aulas/fase-01-fundamentos-de-programacao/10-algoritmos-de-busca.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`buscaBinaria`** — Guarde um `inicio = 0` e um `fim = numerosOrdenados.length - 1`.
 Enquanto `inicio <= fim`: calcule o `meio` (`Math.floor((inicio + fim) / 2)`), compare

@@ -62,10 +62,10 @@ Se o simulador estiver rodando, feche-o antes para o reset ter efeito completo.
 │   │   └── 30-integrador-fase1/       ← projeto final do nível
 │   └── trainee/ junior-1/ ... senior-3/   ← ainda "aguardando novo cliente"
 │
-├── .devtech/          ← dados internos do sistema
-│   ├── sprint.json    ← estado da sprint atual
-│   ├── progress.json  ← seu XP e nome
-│   └── aulas.md       ← trilha completa de estudos
+├── .devtech/          ← dados internos do sistema (sprint.json, progress.json...)
+│
+├── AULAS.md           ← trilha de estudos — índice + links (leia direto, sem abrir o simulador)
+├── aulas/             ← conteúdo completo por tópico (Fase 1: 1 arquivo por tópico)
 │
 └── docs/
     └── plan.md        ← guia do sistema (para o Claude)
@@ -80,7 +80,7 @@ Estagiário → Trainee → Junior I → II → III → Pleno I → II → III �
 ```
 
 Cada nível tem vários mini-projetos (3 por tópico da fase de estudo correspondente do
-`aulas.md`) — no Estagiário são 30, do "Hello World" até o projeto integrador final. O
+`AULAS.md`) — no Estagiário são 30, do "Hello World" até o projeto integrador final. O
 último projeto de cada nível é sempre o integrador — o mais importante, mistura tudo que
 foi praticado na fase inteira.
 Promoções são feitas pelo Claude (seu Tech Lead e QA) quando você conclui todos os projetos.
@@ -89,37 +89,45 @@ Promoções são feitas pelo Claude (seu Tech Lead e QA) quando você conclui to
 
 ## Comandos do Painel de Sprint
 
+A sprint é um **lote de 1 a 3 projetos** — o QA solta o lote sozinho, na
+ordem da trilha, direto no board. Não existe mais comando pra "pegar"
+projeto na mão.
+
 | Comando | O que faz |
 |---|---|
-| `projeto` | Atribui o próximo projeto pendente do seu nível — já traz sprint (dias corridos conforme o nível) e backlog do README, cada tarefa com o tempo inteiro pra ela |
-| `ver <id>` | Mostra o título completo da tarefa (as colunas do quadro cortam títulos longos) |
-| `start <id>` | Move a tarefa pra DESENVOLVENDO e zera o timer dela (bloqueado se outra tarefa já estiver ativa) |
-| `revisar <id>` | Manda a tarefa pra EM REVISÃO com o QA — timer pausa até ele responder |
-| `rm <id>` | Remove tarefa |
-| `concluir` | Entrega o projeto — só libera com **todo** o backlog concluído e aprovado |
-| `pausar` / `retomar` | Pausa ou retoma o timer da tarefa ativa |
-| `inicio` | Reinicia o timer da tarefa ativa |
+| `ver <nº>` | Mostra o status do projeto (o número aparece no board) |
+| `start <nº>` | Começa ou retoma o projeto — vira o "ativo" (o cronômetro de horas passa a seguir ele). Dá pra ter mais de um projeto "em andamento" ao mesmo tempo, mas só um com o cronômetro ligado |
+| `revisar <nº>` | Manda pro QA — ele roda lint + `npm test` de verdade na hora e aprova/reprova com o motivo real, em tempo real (minutos a dias) |
+| `concluir <nº>` | Só com o projeto aprovado — roda `npm test` de novo, marca como entregue e dá XP |
+| `commit <mensagem>` | **Salva o jogo em disco** (XP, sprint, projetos) — sem commit, nada do que mudou é persistido. `concluir` também salva sozinho |
+| `pausar` / `retomar` | Pausa ou retoma o timer do projeto ativo |
 | Enter | Atualiza a tela e os timers |
-| Ctrl+C | Sai |
+| Esc | Volta ao menu |
 
 Não existe comando pra definir nome de sprint, estimativa ou tarefa na
-mão — tudo isso vem do README via `projeto`. Só dá pra ter **uma tarefa
-em andamento por vez**: `start` numa segunda tarefa antes da atual ser
-aprovada é bloqueado ("[QA] Termina a #X antes de começar outra").
+mão — tudo isso vem do README do próprio projeto.
 
-## Simulador vivo: três relógios + prática diária
+## Simulador vivo: dois relógios independentes + prática diária
 
-- **Horas ativas — por tarefa.** O QA passa uma tarefa de cada vez, e
-  cada uma ganha o **tempo inteiro do README** (não é dividido entre as
-  tarefas do backlog — dividir deixaria cada uma com poucos minutos, o
-  que pressiona demais quem ainda tá aprendendo). Estourou o tempo de uma
-  tarefa? O QA renegocia mais tempo pra ela sozinho, mas isso registra um
-  **aviso de desempenho** e tira XP (-5 na 1ª vez na sprint, -10 na 2ª,
-  escalando).
-- **Prazo da sprint — do projeto inteiro.** Dias **corridos** (7 a 15,
-  conforme o nível — veja o TUTORIAL), contando mesmo com o app fechado
-  (é sprint de verdade, não sessão de terminal). Estourou o prazo? Mesma
-  consequência: QA ganha +7 dias, mas vira aviso + XP.
+- **Horas ativas — por projeto.** Cada projeto ativo tem uma estimativa em
+  horas vinda do README (**mínimo de 1h**, crescendo com a complexidade do
+  projeto — os primeiros do Estagiário começam em 1h, o integrador chega a
+  4h). Estourou o tempo? O QA renegocia mais tempo sozinho, mas isso
+  registra um **aviso de desempenho** e tira XP (-5 na 1ª vez na sprint,
+  -10 na 2ª, escalando).
+- **Prazo da sprint — do LOTE inteiro**, em dias **corridos** (conta mesmo
+  com o app fechado — é sprint de verdade, não sessão de terminal), e
+  reflete quantos projetos foram juntados no lote:
+
+  | Projetos no lote | Prazo |
+  |---|---|
+  | 1 projeto | 3 dias |
+  | 2 projetos | 7 dias |
+  | 3 projetos (ou lote com o integrador) | 15 dias |
+
+  Estourou o prazo do lote inteiro sem entregar tudo? O QA consegue mais
+  tempo com o PM (metade do prazo original, mínimo 3 dias), mas vira aviso
+  de desempenho + XP perdido, escalando a cada vez na mesma sprint.
 - **Prática diária** — passou um dia inteiro sem abrir o simulador? Isso
   conta como falta de verdade: aviso de desempenho, XP perdido, e o
   streak de dias seguidos (visível na Ficha do Desenvolvedor) reseta.
@@ -291,3 +299,7 @@ Sem internet, só fica de fora o QA do Copilot e a instalação inicial.
 ---
 
 > Leia o `TUTORIAL.md` para um passo a passo do primeiro projeto.
+> Travou num projeto e a seção "Dicas" do README não foi suficiente? Leia o
+> `AULAS.md` — é a trilha de estudos completa, com explicação, exemplo e
+> exercício por tópico (não só uma lista de assuntos), e dá pra abrir direto
+> no editor, sem precisar do simulador.

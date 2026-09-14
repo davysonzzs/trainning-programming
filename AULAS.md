@@ -1,20 +1,43 @@
 # Trilha: Engenheiro de Software Fullstack JavaScript
 # Estagiário → Sênior III
 
+> Isto é documentação de verdade, não um índice de assuntos — dá pra ler direto
+> aqui (neste arquivo, `AULAS.md`, na raiz do repositório) em qualquer editor ou
+> no GitHub, sem precisar abrir o simulador.
+
+**Como usar:**
+- Travou num projeto e a seção "Dicas" do README não foi suficiente? Confira a
+  linha **"Tópico da trilha"** no topo do README dele e leia o tópico
+  correspondente *antes* de chamar o GitHub Copilot.
+- Dentro do simulador, **[5] Trilha de Estudos** mostra este mesmo conteúdo,
+  com a fase que você está cursando marcada com `▶` e as já concluídas com `✓`.
+- Cada fase corresponde a um nível de carreira (ver tabela no `README.md`) — a
+  Fase 1 inteira é o nível Estagiário.
+- A Fase 1 tem um documento por tópico, dentro de `aulas/fase-01-.../` — cada
+  um com explicação, exemplo, um segundo exemplo num cenário parecido com o
+  dos projetos da DevTech, exercício e erros comuns. As fases 2 em diante ainda
+  são só a lista de assuntos (os projetos desses níveis ainda não foram
+  construídos — ver `docs/plan.md`) e ganham o mesmo tratamento assim que os
+  projetos daquele nível forem criados.
+
 ---
 
 ## FASE 1 — Fundamentos de Programação
 
-- Lógica de programação: algoritmos e pseudocódigo
-- Variáveis, tipos de dados e operadores
-- Estruturas condicionais (if, else, switch)
-- Estruturas de repetição (for, while, do-while)
-- Funções: parâmetros, retorno e escopo
-- Arrays: criação, iteração e métodos essenciais
-- Objetos: propriedades, métodos e referências
-- Recursão e casos base
-- Algoritmos de ordenação (bubble sort, selection sort)
-- Algoritmos de busca (linear e binária)
+Nível: **Estagiário**. Do "Hello World" até ordenação e busca — os 10 tópicos que os
+31 projetos de `projects/estagiario/` praticam. Cada um é um documento próprio, em
+[`aulas/fase-01-fundamentos-de-programacao/`](aulas/fase-01-fundamentos-de-programacao/README.md):
+
+1. [Lógica de programação: algoritmos e pseudocódigo](aulas/fase-01-fundamentos-de-programacao/01-logica-algoritmos-pseudocodigo.md)
+2. [Variáveis, tipos de dados e operadores](aulas/fase-01-fundamentos-de-programacao/02-variaveis-tipos-operadores.md)
+3. [Estruturas condicionais (if, else, switch)](aulas/fase-01-fundamentos-de-programacao/03-estruturas-condicionais.md)
+4. [Estruturas de repetição (for, while, do-while)](aulas/fase-01-fundamentos-de-programacao/04-estruturas-de-repeticao.md)
+5. [Funções: parâmetros, retorno e escopo](aulas/fase-01-fundamentos-de-programacao/05-funcoes-parametros-retorno-escopo.md)
+6. [Arrays: criação, iteração e métodos essenciais](aulas/fase-01-fundamentos-de-programacao/06-arrays.md)
+7. [Objetos: propriedades, métodos e referências](aulas/fase-01-fundamentos-de-programacao/07-objetos.md)
+8. [Recursão e casos base](aulas/fase-01-fundamentos-de-programacao/08-recursao.md)
+9. [Algoritmos de ordenação (bubble sort, selection sort)](aulas/fase-01-fundamentos-de-programacao/09-algoritmos-de-ordenacao.md)
+10. [Algoritmos de busca (linear e binária)](aulas/fase-01-fundamentos-de-programacao/10-algoritmos-de-busca.md)
 
 ---
 

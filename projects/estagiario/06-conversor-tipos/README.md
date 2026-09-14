@@ -15,7 +15,7 @@ e comparam valores do jeito certo.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Conversor de Tipos  
-**Estimativa:** 0h 45m  
+**Estimativa:** 1h 15m  
 **Prioridade:** Média  
 **Tópico da trilha:** Fase 1 — Fundamentos › Variáveis, tipos de dados e operadores (3/3)
 
@@ -74,14 +74,28 @@ npm test
 
 ### Dicas (tente sozinho antes de usar)
 
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 2 — Variáveis, tipos de dados e operadores**
+> em [`02-variaveis-tipos-operadores.md`](../../../aulas/fase-01-fundamentos-de-programacao/02-variaveis-tipos-operadores.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
+
 **`paraNumero`** — Existe uma função global do JavaScript que converte texto pra
 número. Quando a conversão falha, ela devolve um valor especial chamado `NaN` — e você
 pode checar isso com `Number.isNaN(...)`.
 
-**`paraTexto`** — Existe uma função global que converte qualquer coisa pra texto.
+```js
+Number('42');       // 42
+Number('quarenta'); // NaN
+Number.isNaN(Number('quarenta')); // true
+```
+
+**`paraTexto`** — Existe uma função global que converte qualquer coisa pra texto
+(`String(123)` → `'123'`).
 
 **`paraBooleano`** — Existe uma função global que converte qualquer valor pro
-"equivalente" em `true`/`false` — os valores que viram `false` são chamados de "falsy".
+"equivalente" em `true`/`false` — os valores que viram `false` são chamados de "falsy"
+(`Boolean(0)`, `Boolean('')` e `Boolean(null)` são exemplos de valores falsy;
+praticamente tudo o resto é "truthy").
 
 **`saoIguais` / `saoIdenticos`** — A diferença entre `==` e `===` é exatamente essa: um
 converte tipos antes de comparar, o outro não. Use o operador certo em cada função.

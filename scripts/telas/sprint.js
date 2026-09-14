@@ -24,7 +24,26 @@ const { precisaRevisao1a1 } = require('./revisao1a1');
 //  s.tempoAtivoMs/         cronometro global, mas sempre do projeto ativo — o
 //  s.sessaoIniciadaEm      tempo junta no proprio projeto quando ele pausa
 //  ("start <id>" troca ativo: salva o tempo no projeto que sai, zera pro que entra)
+//
+//  Dois relogios independentes, um por projeto e um por lote:
+//  - estimativaHoras (por projeto) — cronometro de horas ativas, piso 1h,
+//    cresce com a complexidade do README. Estourou -> checkOvertime().
+//  - loteAtribuidoEm/lotePrazoDias/loteExtensoesQA (do LOTE inteiro) —
+//    prazo em dias corridos: 3/7/15 conforme quantos projetos foram
+//    juntados nesse lote (integrador sempre 15). Estourou -> checkPrazoSprint().
 // ─────────────────────────────────────────────────────────────────────────
+
+// Texto curto do prazo do lote pro cabecalho do Painel de Sprint — mesma
+// ideia do timer de horas (timerLine), so que em dias corridos.
+function prazoLoteTexto(s) {
+  if (!s.loteAtribuidoEm || !s.lotePrazoDias) return clr(C.gray, 'Prazo: —');
+  const prazo     = s.lotePrazoDias;
+  const decorrido = Math.floor((Date.now() - new Date(s.loteAtribuidoEm).getTime()) / 86400000);
+  const restam    = prazo - decorrido;
+  if (restam <= 0) return clr(C.red, `Prazo: ESTOURADO (${prazo}d corridos)`);
+  const cor = restam <= Math.max(1, Math.ceil(prazo * 0.2)) ? C.yellow : C.gray;
+  return clr(cor, `Prazo: ${restam}d restantes de ${prazo}d corridos`);
+}
 
 function buildSprint(s) {
   const p        = loadProgress();
@@ -82,7 +101,8 @@ function buildSprint(s) {
   o += `╔${LINE}╗\n`;
   const naoSalvo = haAlteracoesNaoSalvas() ? '  ' + clr(C.yellow, '● não salvo') : '  ' + clr(C.gray, '✔ salvo');
   o += row(` ${bold('DEVTECH SISTEMAS S.A.')}  ${' '.repeat(26)}Dev: ${bold(p.name)}  XP: ${clr(C.cyan,String(p.xp))}${naoSalvo}`) + '\n';
-  o += row(` Sprint ${clr(C.gray,String(s.sprintNum||1))}${pausado ? '  '+clr(C.yellow,'[PAUSADO]') : ''}  ${s.projetoAtual ? clr(C.gray,'  ativo: '+s.projetoAtual) : clr(C.gray,'  nenhum projeto ativo')}`) + '\n';
+  o += row(` Sprint ${clr(C.gray,String(s.sprintNum||1))}${pausado ? '  '+clr(C.yellow,'[PAUSADO]') : ''}  ${prazoLoteTexto(s)}`) + '\n';
+  o += row(` ${s.projetoAtual ? clr(C.gray,'ativo: '+s.projetoAtual) : clr(C.gray,'nenhum projeto ativo')}`) + '\n';
   o += row(` ${timerLine(s)}`) + '\n';
   o += `╠${LINE}╣\n`;
   o += quadroRow(
@@ -204,14 +224,19 @@ function distribuirNovoLote(s) {
       id: s.nextId++, nivel: prox.nivel, pj: prox.pj, rel: prox.rel,
       titulo: prox.pj.replace(/^\d+-/, '').replace(/-/g, ' '),
       sprintLabel: meta.sprint || `Sprint ${s.sprintNum}`,
-      estimativaHoras: meta.estimativaHoras || 2,
+      // piso de 1h — nenhum projeto (nem o mais curtinho) conta menos que
+      // isso pro cronometro; o README pode pedir mais, nunca menos.
+      estimativaHoras: Math.max(1, meta.estimativaHoras || 2),
       status: 'backlog',
-      prazoDias: prazoSprintPara(prox.nivel, prox.pj),
-      atribuidoEm: new Date().toISOString(),
       tempoAtivoMs: 0, extensoesQA: 0,
     });
   }
-  pushMessage(NPC.qa, `Sprint ${s.sprintNum}: coloquei ${escolhidos.length} projeto(s) no seu backlog — ${escolhidos.map(e=>e.pj).join(', ')}.`);
+  // Prazo agora e do LOTE inteiro (nao mais por projeto) — reflete o que
+  // acabou de entrar no backlog como um bloco so.
+  s.loteAtribuidoEm = new Date().toISOString();
+  s.lotePrazoDias   = prazoLotePara(escolhidos);
+  s.loteExtensoesQA = 0;
+  pushMessage(NPC.qa, `Sprint ${s.sprintNum}: coloquei ${escolhidos.length} projeto(s) no seu backlog — ${escolhidos.map(e=>e.pj).join(', ')}. Prazo: ${s.lotePrazoDias} dias corridos.`);
   return escolhidos.length;
 }
 
@@ -230,15 +255,16 @@ function devEstaBloqueado(s) {
   return !(s.projetos||[]).some(pr => ['backlog','doing','aprovado'].includes(pr.status));
 }
 
-// Prazo da sprint (dias corridos) varia com o nivel — nao faz sentido um
-// projeto de Estagiario ter os mesmos 15 dias de um de Senior. O projeto
-// "06" de cada nivel e sempre o integrador (mistura tudo que foi visto),
-// entao ganha alguns dias a mais mesmo dentro do mesmo nivel.
-function prazoSprintPara(nivelFolder, pjNome) {
-  const lv = LEVELS.find(l => l.folder === nivelFolder);
-  const base = lv?.sprintDias || 7;
-  const ehIntegrador = /^06-|integrador/i.test(pjNome);
-  return ehIntegrador ? base + 3 : base;
+// Prazo da sprint (dias corridos) agora e do LOTE inteiro — depende de
+// quantos projetos foram juntados nele, nao do nivel: um lote de 1 projeto
+// da pra fechar rapido, um de 3 precisa de mais fôlego de calendario. O
+// projeto integrador (mistura tudo que foi praticado na fase inteira)
+// sempre pede o prazo mais largo, mesmo vindo sozinho no lote.
+function prazoLotePara(escolhidos) {
+  const ehIntegrador = escolhidos.some(pr => /integrador/i.test(pr.pj));
+  if (ehIntegrador || escolhidos.length >= 3) return 15;
+  if (escolhidos.length === 2) return 7;
+  return 3;
 }
 
 // "1h 30m" / "2h" / "2h 30m" → horas decimais (1.5 / 2 / 2.5)
@@ -625,37 +651,39 @@ function checkOvertime() {
   }
 }
 
-// Simulador vivo: cada projeto corre em dias corridos de verdade (a partir
-// de quando entrou no backlog), mesmo com o app fechado. Se o prazo bater
-// antes de terminado (nao 'done'), o QA renegocia com o PM — mesmo
-// contador de avisos/XP que o estouro de horas.
+// Simulador vivo: o LOTE inteiro corre em dias corridos de verdade (a
+// partir de quando entrou no backlog), mesmo com o app fechado. Se o prazo
+// bater antes do lote inteiro entregue, o QA renegocia com o PM — mesmo
+// contador de avisos/XP que o estouro de horas, agora por sprint em vez de
+// por projeto.
 function checkPrazoSprint() {
   const s = loadSprint();
-  if (!s) return;
-  let mudou = false;
-  for (const proj of (s.projetos||[])) {
-    if (proj.status === 'done' || !proj.atribuidoEm) continue;
-    const prazo     = proj.prazoDias || 15;
-    const decorrido = Math.floor((Date.now() - new Date(proj.atribuidoEm).getTime()) / 86400000);
-    if (decorrido < prazo) continue;
+  if (!s || !s.loteAtribuidoEm) return;
+  const abertos = (s.projetos||[]).some(pr => pr.status !== 'done');
+  if (!abertos) return; // lote inteiro entregue, nada pra cobrar
 
-    const extensaoDias = 7;
-    proj.prazoDias = prazo + extensaoDias;
-    proj.extensoesQA = (proj.extensoesQA || 0) + 1;
-    mudou = true;
+  const prazo     = s.lotePrazoDias || 7;
+  const decorrido = Math.floor((Date.now() - new Date(s.loteAtribuidoEm).getTime()) / 86400000);
+  if (decorrido < prazo) return;
 
-    const penalidade = 5 * proj.extensoesQA;
-    const p = loadProgress();
-    p.xp     = Math.max(0, p.xp - penalidade);
-    p.avisos = (p.avisos || 0) + 1;
-    saveProgress(p);
+  // extensao proporcional ao prazo original — +7 fixo nao fazia sentido
+  // num lote de 3 dias (mais que dobraria o prazo sozinho).
+  const extensaoDias = Math.max(3, Math.round(prazo / 2));
+  s.lotePrazoDias   = prazo + extensaoDias;
+  s.loteExtensoesQA = (s.loteExtensoesQA || 0) + 1;
 
-    pushMessage(NPC.pm, `Os ${prazo} dias do #${proj.id} bateram. Consegui +${extensaoDias} dias com o cliente, mas isso vira aviso.`);
-    pushMessage(NPC.qa, 'Nao da pra esticar prazo pra sempre — precisamos fechar isso logo.');
-    if (APP.screen === 'sprint')
-      APP.lastFb = clr(C.red, `⚠ Prazo do #${proj.id} estourou — QA conseguiu +${extensaoDias}d  (aviso registrado, -${penalidade} XP)`);
-  }
-  if (mudou) saveSprint(s);
+  const penalidade = 5 * s.loteExtensoesQA;
+  const p = loadProgress();
+  p.xp     = Math.max(0, p.xp - penalidade);
+  p.avisos = (p.avisos || 0) + 1;
+  saveProgress(p);
+
+  pushMessage(NPC.pm, `Os ${prazo} dias da Sprint ${s.sprintNum} bateram. Consegui +${extensaoDias} dias com o cliente, mas isso vira aviso.`);
+  pushMessage(NPC.qa, 'Nao da pra esticar prazo pra sempre — precisamos fechar isso logo.');
+  if (APP.screen === 'sprint')
+    APP.lastFb = clr(C.red, `⚠ Prazo da Sprint ${s.sprintNum} estourou — QA conseguiu +${extensaoDias}d  (aviso registrado, -${penalidade} XP)`);
+
+  saveSprint(s);
 }
 
 function handleSprintKey(key) {
@@ -673,4 +701,4 @@ function handleSprintKey(key) {
   render();
 }
 
-module.exports = { buildSprint, handleSprintKey, pick, RESP, checkRevisoesQA, sprintCommand, checkOvertime, checkPrazoSprint, proximoProjetoNivel, devEstaBloqueado, prazoSprintPara, parseEstimativaTexto, extrairTarefas, metaDoProjeto };
+module.exports = { buildSprint, handleSprintKey, pick, RESP, checkRevisoesQA, sprintCommand, checkOvertime, checkPrazoSprint, proximoProjetoNivel, devEstaBloqueado, prazoLotePara, prazoLoteTexto, parseEstimativaTexto, extrairTarefas, metaDoProjeto };

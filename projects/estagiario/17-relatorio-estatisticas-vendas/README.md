@@ -15,7 +15,7 @@ dia a dia de qualquer time.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Estatísticas de Vendas  
-**Estimativa:** 1h  
+**Estimativa:** 2h  
 **Prioridade:** Média  
 **Tópico da trilha:** Fase 1 — Fundamentos › Arrays: criação, iteração e métodos essenciais (2/3)
 
@@ -70,6 +70,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 6 — Arrays: criação, iteração e métodos essenciais**
+> em [`06-arrays.md`](../../../aulas/fase-01-fundamentos-de-programacao/06-arrays.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`.map(venda => venda.valor)`** — `.map()` transforma cada item do array em outra
 coisa, gerando um array novo do mesmo tamanho.

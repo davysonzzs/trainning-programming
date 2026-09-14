@@ -1,5 +1,30 @@
 # Atualizações
 
+## 2026-09-14 (3)
+- 📖 **Trilha de Estudos virou documentação de verdade.** A Fase 1 (Estagiário) ganhou
+  um `.md` por tópico em `aulas/fase-01-fundamentos-de-programacao/` — explicação
+  acessível pra quem nunca programou, exemplo genérico, um segundo exemplo num cenário
+  parecido com os projetos da DevTech, "Tente você", erros comuns e em quais projetos
+  aquele tópico aparece. `AULAS.md` na raiz virou o índice (era `.devtech/aulas.md`,
+  dado interno — agora é documentação de verdade, lida direto no editor/GitHub, sem
+  precisar abrir o simulador)
+- ✨ Tela **[5] Trilha de Estudos** reescrita pra renderizar esse conteúdo com o mesmo
+  `renderMarkdown()` dos READMEs de projeto (títulos, listas, blocos de código com
+  wrap de verdade) em vez do parser cru de antes, e agora abre direto na fase atual em
+  vez de sempre no topo
+- 📖 Os 31 READMEs de projeto do Estagiário ganharam um link direto pro tópico
+  correspondente no topo da seção "Dicas", e os mais enxutos (ex.: `03`, `04`, `06`,
+  `07`, `08`, `13`, `14`, `31`) ganharam um exemplo genérico curto (domínio diferente do
+  exercício) pro conceito mais novo daquele projeto — sem entregar a resposta
+- ⚖️ Prazo da sprint agora é do **lote inteiro** (não mais por projeto nem por nível):
+  3 dias corridos pra lote de 1 projeto, 7 pra lote de 2, 15 pra lote de 3 ou qualquer
+  lote com o projeto integrador — reflete quanto foi juntado na sprint, não a
+  senioridade. Extensão de prazo (quando estoura) agora é proporcional ao prazo
+  original, não mais um +7 fixo
+- ⚖️ Estimativa de horas por projeto agora tem piso de **1h** (era possível ter projeto
+  com 20-50min) — os 31 READMEs do Estagiário foram recalibrados numa progressão
+  crescente de complexidade, de `1h` no primeiro projeto até `4h` no integrador
+
 ## 2026-09-14 (2)
 - 🔨 Reformulação grande do Painel de Sprint: a sprint agora é um **lote de 1 a 3 projetos**
   (o QA solta sozinho, na ordem da trilha) em vez de um único projeto quebrado em tarefas —

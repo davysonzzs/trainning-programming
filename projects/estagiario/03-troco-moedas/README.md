@@ -15,7 +15,7 @@ usar primeiro a maior nota/moeda que couber no valor restante.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Troco do Caixa  
-**Estimativa:** 0h 40m  
+**Estimativa:** 1h 15m  
 **Prioridade:** Baixa  
 **Tópico da trilha:** Fase 1 — Fundamentos › Lógica de programação: algoritmos e pseudocódigo (3/3)
 
@@ -65,6 +65,11 @@ npm test
 
 ### Dicas (tente sozinho antes de usar)
 
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 1 — Lógica de programação: algoritmos e pseudocódigo**
+> em [`01-logica-algoritmos-pseudocodigo.md`](../../../aulas/fase-01-fundamentos-de-programacao/01-logica-algoritmos-pseudocodigo.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
+
 **`calcularTroco`** — Subtração simples, só cuidado com o caso do pagamento ser menor
 que a compra, e com arredondamento de casas decimais (`Math.round`).
 
@@ -73,6 +78,25 @@ cédula que ainda cabe nele, tira do valor restante, guarda na lista, repete". I
 `while` (ainda não obrigatório usar, mas ajuda pensar assim) percorrendo a lista de
 cédulas da maior pra menor. Cuidado com problemas de arredondamento de ponto flutuante —
 uma dica é trabalhar em centavos (multiplicar tudo por 100) e converter de volta no final.
+
+Exemplo do mesmo *padrão* ("pega a maior unidade que cabe, repete") num problema
+diferente — quantas caixas de cada tamanho pra embalar um peso, usando a maior
+caixa possível primeiro:
+
+```js
+function embalarPeso(pesoKg, tamanhosDisponiveis) {
+  // tamanhosDisponiveis já vem ordenado do maior pro menor, ex: [10, 5, 1]
+  let restante = pesoKg;
+  const caixas = [];
+  for (const tamanho of tamanhosDisponiveis) {
+    while (restante >= tamanho) {
+      caixas.push(tamanho);
+      restante -= tamanho;
+    }
+  }
+  return caixas; // ex: embalarPeso(23, [10, 5, 1]) → [10, 10, 1, 1, 1]
+}
+```
 
 ---
 

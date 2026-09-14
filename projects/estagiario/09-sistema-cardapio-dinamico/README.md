@@ -14,7 +14,7 @@ caso perfeito pra usar `switch` — várias opções para uma mesma variável.
 
 **Nível:** Estagiário  
 **Sprint:** Estagiário — Cardápio do Totem  
-**Estimativa:** 0h 50m  
+**Estimativa:** 1h 30m  
 **Prioridade:** Média  
 **Tópico da trilha:** Fase 1 — Fundamentos › Estruturas condicionais (if, else, switch) (3/3)
 
@@ -65,6 +65,11 @@ npm test
 ---
 
 ### Dicas (tente sozinho antes de usar)
+
+> 📘 Ainda sem noção de por onde começar? Revise o **Tópico 3 — Estruturas condicionais (if, else, switch)**
+> em [`03-estruturas-condicionais.md`](../../../aulas/fase-01-fundamentos-de-programacao/03-estruturas-condicionais.md) — tem explicação, exemplo e um
+> exercício pra treinar antes de tentar aqui. Também dá pra ler dentro
+> do simulador, tecla `[5]` (Trilha de Estudos).
 
 **`precoLanche` / `precoBebida`** — Um `switch (tamanho) { case 'pequeno': return 12; ... }`
 resolve. Não esquece do `default` pra cobrir qualquer outra opção não prevista — sem ele,
