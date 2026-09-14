@@ -292,7 +292,7 @@ const MENU_ITEMS = [
   { key:'3', label:'Ficha do Desenvolvedor',    desc:'Nivel, XP, salario e historico'   },
   { key:'4', label:'Quadro de Projetos',        desc:'Missoes disponiveis e progresso'  },
   { key:'5', label:'Trilha de Estudos',         desc:'14 fases ate Senior III'          },
-  { key:'6', label:'GitHub (simulado)',         desc:'Issues, Pull Requests e Actions'  },
+  { key:'6', label:'GitHub (simulado)',         desc:'Issues, PRs, Actions, Commits e README'  },
 ];
 
 function spin(o=0) { return SPIN[(APP.frame+o) % SPIN.length]; }
@@ -913,15 +913,26 @@ function issuesDoBacklog(s) {
 }
 
 function prsDoBacklog(s) {
+  // status check da PR — mesma logica de branch protection de um repo real:
+  // mostra se a ultima Action (concluir) passou, antes mesmo do merge.
+  const ultima = ultimaAction(s);
+  const ciTag  = !ultima ? clr(C.gray,'CI —') : ultima.sucesso ? clr(C.green,'CI ✓') : clr(C.red,'CI ✗');
   return s.tasks.filter(t => t.prNumero).map(t => {
     let estado, cor;
     if (t.status === 'done')          { estado = 'MERGEADO';             cor = C.magenta; }
     else if (t.status === 'revisao')  { estado = 'ABERTO — em revisão';  cor = C.green;   }
     else                              { estado = 'MUDANÇAS SOLICITADAS'; cor = C.red;     }
     const num    = `#PR${t.prNumero}`.padEnd(6);
-    const titulo = (t.title.length > 30 ? t.title.slice(0,29)+'…' : t.title).padEnd(30);
-    return `  ${clr(cor,'●')} ${clr(C.gray,num)} ${titulo} ${clr(C.gray,'closes #'+t.id).padEnd(20)} ${clr(cor,estado)}`;
+    const titulo = (t.title.length > 26 ? t.title.slice(0,25)+'…' : t.title).padEnd(26);
+    return `  ${clr(cor,'●')} ${clr(C.gray,num)} ${titulo} ${clr(C.gray,'closes #'+t.id).padEnd(11)} ${ciTag}  ${clr(cor,estado)}`;
   });
+}
+
+// ultima Action rodada nesse projeto — ciRuns e resetado junto com a sprint
+// (atribuir()), entao a lista inteira ja e so do projeto atual.
+function ultimaAction(s) {
+  const runs = s.ciRuns || [];
+  return runs.length ? runs[runs.length - 1] : null;
 }
 
 function actionsDoProjeto(s) {
@@ -936,17 +947,47 @@ function actionsDoProjeto(s) {
   });
 }
 
+// Aba "Commits" — le o git log de verdade (nao inventa nada), filtrado pro
+// caminho do projeto ativo, igual a aba Commits de um repositorio real
+// mostrando so o que mudou dentro daquela pasta.
+function commitsDoProjeto(s) {
+  if (!s.projetoAtual) return [clr(C.gray, '  Nenhum projeto ativo — sem branch pra listar commits.')];
+  const branch = gitBranchAtual();
+  const projRel = path.join('projects', s.projetoAtual);
+  const res = spawnSync('git', ['log', '-20', '--pretty=format:%h\x1f%an\x1f%ar\x1f%s', '--', projRel], { cwd: ROOT, encoding: 'utf8' });
+  const cabecalho = clr(C.gray, `  branch atual: ${branch || '(detached / fora de um repo git)'}`);
+  if (res.status !== 0 || !res.stdout.trim()) {
+    return [cabecalho, '', clr(C.gray, '  Nenhum commit ainda mexendo nesse projeto. Faz o primeiro commit!')];
+  }
+  const linhas = res.stdout.trim().split('\n').map(ln => {
+    const [hash, autor, quando, msg] = ln.split('\x1f');
+    return `  ${clr(C.yellow, hash)}  ${clr(C.gray, (quando||'').padEnd(16))} ${clr(C.cyan, (autor||'').padEnd(16))} ${msg||''}`;
+  });
+  return [cabecalho, ''].concat(linhas);
+}
+
+// Aba "README" — o README.md do projeto ativo, formatado com o mesmo
+// renderizador de markdown usado no painel de projetos.
+function readmeDoProjeto(s) {
+  if (!s.projetoAtual) return [clr(C.gray, '  Nenhum projeto ativo.')];
+  const readmePath = path.join(PROJECTS_DIR, s.projetoAtual, 'README.md');
+  if (!fs.existsSync(readmePath)) return [clr(C.gray, '  Este projeto não tem README.md.')];
+  return renderMarkdown(fs.readFileSync(readmePath, 'utf8'));
+}
+
 function buildGithub() {
   const s = loadSprint();
   const TABS = [
-    { key: 'issues',  label: 'Issues',         dados: issuesDoBacklog(s) },
-    { key: 'prs',     label: 'Pull Requests',  dados: prsDoBacklog(s)    },
-    { key: 'actions', label: 'Actions',         dados: actionsDoProjeto(s) },
+    { key: 'issues',  label: 'Issues',         dados: issuesDoBacklog(s)   },
+    { key: 'prs',     label: 'Pull Requests',  dados: prsDoBacklog(s)      },
+    { key: 'actions', label: 'Actions',        dados: actionsDoProjeto(s)  },
+    { key: 'commits', label: 'Commits',        dados: commitsDoProjeto(s)  },
+    { key: 'readme',  label: 'README',         dados: readmeDoProjeto(s)  },
   ];
   const abaAtual = TABS.find(t => t.key === APP.githubTab) || TABS[0];
   const linhas   = abaAtual.dados.length ? abaAtual.dados : [clr(C.gray, '  (nada por aqui ainda)')];
 
-  const visible = 18;
+  const visible = 17;
   const total   = linhas.length;
   const scroll  = Math.max(0, Math.min(APP.githubScroll, Math.max(0, total - visible)));
   APP.githubScroll = scroll;
@@ -956,10 +997,21 @@ function buildGithub() {
     return t.key === abaAtual.key ? bold(clr(C.cyan, texto)) : clr(C.gray, texto);
   }).join('   ');
 
+  // badge de build no topo, igual o badge de README de repo real — reflete
+  // a ultima Action rodada nesse projeto (concluir), qualquer que seja a
+  // aba aberta no momento.
+  const ultima = ultimaAction(s);
+  const badge  = !ultima
+    ? clr(C.gray, '○ build: nenhum run ainda — use "concluir" quando o backlog estiver pronto')
+    : ultima.sucesso
+      ? clr(C.green, '● build: passing')
+      : clr(C.red,   '● build: failing');
+
   let o = C.cls + C.hide;
   o += `╔${LINE}╗\n`;
   o += cen(bold('DEVTECH SISTEMAS S.A.  ─  GitHub (simulado)')) + '\n';
   o += row(` ${tabLine}`) + '\n';
+  o += row(`  ${badge}`) + '\n';
   if (total > visible)
     o += row(dim(`  [${scroll+1}-${Math.min(scroll+visible,total)} de ${total}]`)) + '\n';
   o += `╠${LINE}╣\n`;
@@ -969,7 +1021,7 @@ function buildGithub() {
   for (let i = slice.length; i < visible; i++) o += row('') + '\n';
 
   o += `╠${LINE}╣\n`;
-  o += row(dim('  1/2/3  trocar aba   ↑↓  rolar   Esc  voltar ao menu')) + '\n';
+  o += row(dim('  1-5  trocar aba   ↑↓  rolar   Esc  voltar ao menu')) + '\n';
   o += `╚${LINE}╝\n`;
   return o;
 }
@@ -1698,8 +1750,8 @@ function handleAulasKey(key) {
 }
 
 function handleGithubKey(key) {
-  if (key === '1' || key === '2' || key === '3') {
-    APP.githubTab = ['issues','prs','actions'][Number(key)-1];
+  if (key >= '1' && key <= '5') {
+    APP.githubTab = ['issues','prs','actions','commits','readme'][Number(key)-1];
     APP.githubScroll = 0;
   }
   if (key === '\x1b[A') APP.githubScroll = Math.max(0, APP.githubScroll - 1);
