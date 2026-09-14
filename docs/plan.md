@@ -20,6 +20,10 @@ Telas disponíveis no menu:
 3. **Ficha do Desenvolvedor** — nível, XP, salário, avisos de desempenho
 4. **Quadro de Projetos** — todos os projetos com status
 5. **Trilha de Estudos** — currículo com scroll por ↑↓
+6. **GitHub (simulado)** — Issues, Pull Requests, Actions, Commits e README
+
+Fora do menu, dois interstícios disparam sozinhos: o **Daily Standup** (1x por dia
+real, antes do menu) e o **1:1 com o Tech Lead** (a cada 3 projetos entregues).
 
 Esc em qualquer tela volta ao menu. Ctrl+C sai (pausa a sprint automaticamente).
 
@@ -28,13 +32,21 @@ Esc em qualquer tela volta ao menu. Ctrl+C sai (pausa a sprint automaticamente).
 ## Estrutura de pastas
 
 ```
-devtech.js              ← PONTO DE ENTRADA — executa tudo
-src/
-├── empresa.js          ← módulo interno (não execute diretamente)
-├── sprint.js           ← módulo interno
-├── dev.js              ← módulo interno
-├── projetos.js         ← módulo interno
-└── aulas.js            ← módulo interno
+devtech.js              ← PONTO DE ENTRADA — estado global, render/teclado, boot
+scripts/
+├── core/                ← helpers compartilhados entre telas
+│   ├── ansi.js               cores, caixas, truncamento de texto
+│   ├── app.js                estado global (APP), menu, feed corporativo
+│   ├── dados.js               paths, NPCs, load/save (sprint/progress/mensagens)
+│   ├── draw-utils.js          barra de XP, medidor, sparkline, timer da tarefa
+│   ├── gitflow.js             leitura da branch atual (nunca cria/muda nada)
+│   ├── lint.js                roda o ESLint (eslint.config.js) no "concluir"
+│   ├── screen.js              indireção pra render()/goTo() sem ciclo de require
+│   └── texto.js               quebra de linha, parser de markdown do README
+├── telas/                ← uma tela do menu = um arquivo (build + handle da tecla)
+│   ├── menu.js  empresa.js  sprint.js  dev.js  revisao1a1.js
+│   └── projetos.js  aulas.js  github.js  standup.js
+└── reset.js               ← `npm run resetar`
 .devtech/
 ├── progress.json       ← XP, nome, avisos, atrasos (não edite manualmente)
 ├── sprint.json         ← estado da sprint ativa
