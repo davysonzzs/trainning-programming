@@ -5,12 +5,13 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { C, INN, LINE, bold, clr, dim, row, stripAnsi } = require('../core/ansi');
 const { APP } = require('../core/app');
-const { LEVELS, MSGS_AMBIENTE, NPC, PROJECTS_DIR, fmtMs, getLevel, loadMessages, loadProgress, loadSprint, pushMessage, saveProgress, saveSprint, tempoAtivoTotal } = require('../core/dados');
+const { LEVELS, MSGS_AMBIENTE, NPC, PROJECTS_DIR, contarProjetos, fmtMs, getLevel, loadMessages, loadProgress, loadSprint, pushMessage, saveProgress, saveSprint, tempoAtivoTotal } = require('../core/dados');
 const { timerLine } = require('../core/draw-utils');
 const { branchEsperadaProjeto, gitBranchAtual } = require('../core/gitflow');
 const { rodarLint } = require('../core/lint');
-const { render } = require('../core/screen');
+const { goTo, render } = require('../core/screen');
 const { wrapPrefixedColored } = require('../core/texto');
+const { precisaRevisao1a1 } = require('./revisao1a1');
 
 function buildSprint(s) {
   const p        = loadProgress();
@@ -611,6 +612,10 @@ function sprintCommand(input, s) {
           proxMsg = clr(C.green, `  [QA] Nível concluído! Aguarde novos projetos.`);
         }
       }
+
+      // a cada N projetos entregues, interrompe com um 1:1 de performance
+      // do Lead antes do menu — mesmo criterio de interstiço do standup.
+      if (precisaRevisao1a1(contarProjetos().concluidos)) goTo('revisao1a1');
 
       return clr(C.green,'★ ENTREGUE! ') + proxMsg + penMsg;
     }

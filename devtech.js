@@ -25,6 +25,7 @@ const { buildAulas,    handleAulasKey }                   = require('./scripts/t
 const { buildGithub,   handleGithubKey }                  = require('./scripts/telas/github');
 const { buildStandup,  handleStandupKey,
         precisaStandupHoje, salvarStandup }                = require('./scripts/telas/standup');
+const { buildRevisao1a1, handleRevisao1a1Key }              = require('./scripts/telas/revisao1a1');
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  RENDER LOOP
@@ -41,6 +42,7 @@ function render() {
     case 'aulas':    out = buildAulas();   break;
     case 'github':   out = buildGithub();  break;
     case 'standup':  out = buildStandup(); break;
+    case 'revisao1a1': out = buildRevisao1a1(); break;
   }
   process.stdout.write(out);
 }
@@ -103,6 +105,7 @@ process.stdin.on('data', (key) => {
     case 'aulas':    handleAulasKey(key); break;
     case 'github':   handleGithubKey(key); break;
     case 'standup':  handleStandupKey(key); break;
+    case 'revisao1a1': handleRevisao1a1Key(key); break;
     case 'empresa':  render(); break;
   }
 });

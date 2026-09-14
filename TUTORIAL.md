@@ -262,6 +262,11 @@ dos testes lado a lado). Dá pra ver o **README** do projeto e os
 mesmo vocabulário que qualquer time usa no dia a dia — issue, PR, CI —
 só que sem precisar de conta no GitHub.
 
+**A cada 3 projetos entregues**, antes de voltar pro menu aparece um
+**1:1 com o Tech Lead**: um resumo de XP, avisos, atrasos e streak, com
+uma leitura qualitativa do Rafael sobre o seu ritmo — é a versão do jogo
+pra uma review de performance de verdade. Só leitura, Enter volta pro menu.
+
 ---
 
 ## 8. Enquanto o QA revisa, siga em frente

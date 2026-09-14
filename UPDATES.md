@@ -14,6 +14,8 @@
 - ✨ `concluir` agora volta automaticamente pro projeto que ficou esperando (se tinha um), em vez de puxar um terceiro novo da fila
 - 🔨 Novo projeto bônus `31-refatoracao-modulo-descontos` (Estagiário): diferente dos outros 30, o código já existe — malfeito, duplicado e com um bug real escondido (causado exatamente pela duplicação) — a tarefa é consertar e refatorar sem quebrar os testes, praticando manutenção em vez de criação do zero
 - ✨ **Daily Standup**: na primeira vez que abre o simulador no dia, pergunta o que fez ontem / vai fazer hoje / algum bloqueio — não trava (Esc pula), fica registrado e o último standup aparece na Ficha do Desenvolvedor `[3]`
+- ✨ **1:1 com o Tech Lead**: a cada 3 projetos entregues, uma tela resume XP/avisos/atrasos/streak com uma leitura qualitativa do Lead — igual uma review de performance de verdade
+- 🔨 **Refatoração grande**: `devtech.js` (2157 linhas) quebrado em `scripts/core/` (helpers compartilhados: cores, dados, lint, gitflow, texto) e `scripts/telas/` (um arquivo por tela) — melhora manutenção, sem mudar nenhum comportamento pro jogador
 
 ## 2026-09-13
 - 🐛 Bordas não quebram mais com nomes/textos longos
