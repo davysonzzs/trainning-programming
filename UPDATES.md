@@ -1,5 +1,13 @@
 # Atualizações
 
+## 2026-09-14
+- 🐛 Corrigido: ao entregar um projeto, a sprint não reiniciava — o Backlog continuava acumulando tarefas antigas já concluídas e a numeração só crescia ([6], [7], [8]...)
+- ✨ `concluir` agora encadeia direto com o próximo projeto da fila: sprint reinicia sozinha (backlog limpo, ids do zero, prazo em dias recalculado pela dificuldade do novo projeto) — não precisa mais digitar `projeto` de novo
+- 🔒 Cada projeto novo é tratado como um repositório novo na empresa: Issues, Pull Requests e Actions do GitHub simulado (`[6]`) também zeram junto com a sprint, em vez de misturar com o projeto anterior
+- ✨ GitHub simulado ganhou 2 abas novas: **Commits** (lê o `git log` de verdade, filtrado pro projeto ativo — hash, autor, data e mensagem) e **README** (o README.md do projeto atual, formatado)
+- ✨ Badge de build (`passing`/`failing`/sem runs) no topo da tela de GitHub, refletindo a última Action — visível em qualquer aba
+- ✨ Pull Requests agora mostram um status check de CI (`CI ✓`/`CI ✗`) antes do MERGEADO, reforçando o hábito de checar o build antes de mergear
+
 ## 2026-09-13
 - 🐛 Bordas não quebram mais com nomes/textos longos
 - ✨ `npm run resetar` — zera progresso, sprint e projetos entregues
