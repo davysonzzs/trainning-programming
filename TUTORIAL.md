@@ -331,6 +331,12 @@ cada um diz, na linha **"Tópico da trilha"**, qual assunto ele pratica.
 O projeto `30-integrador-fase1` usa conceitos de todos os anteriores.
 Quando todos estiverem `[ENTREGUE]`, você terá XP suficiente para o próximo nível.
 
+**Bônus — `31-refatoracao-modulo-descontos`:** os 30 anteriores são todos "criar do
+zero"; esse é diferente — o código **já existe** (funcionando, mas malfeito e com um
+bug escondido) e a tarefa é ler, entender, consertar e refatorar sem quebrar o que já
+funciona. É metade do trabalho real de um dev: manutenção, não só criação. Vale os
+mesmos XP e entra na fila normalmente depois do `30`.
+
 ---
 
 ## Dicas

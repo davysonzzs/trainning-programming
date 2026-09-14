@@ -12,6 +12,7 @@
 - ✨ Novos comandos `outro` / `voltar` no Painel de Sprint: enquanto uma tarefa espera revisão do QA (pode demorar), dá pra adiantar outro projeto da fila sem perder o progresso do atual — no máximo 2 projetos "em jogo" ao mesmo tempo
 - ✨ Se os dois projetos travarem no QA ao mesmo tempo, o painel avisa e sugere ir pra Trilha de Estudos em vez de ficar esperando parado
 - ✨ `concluir` agora volta automaticamente pro projeto que ficou esperando (se tinha um), em vez de puxar um terceiro novo da fila
+- 🔨 Novo projeto bônus `31-refatoracao-modulo-descontos` (Estagiário): diferente dos outros 30, o código já existe — malfeito, duplicado e com um bug real escondido (causado exatamente pela duplicação) — a tarefa é consertar e refatorar sem quebrar os testes, praticando manutenção em vez de criação do zero
 
 ## 2026-09-13
 - 🐛 Bordas não quebram mais com nomes/textos longos
