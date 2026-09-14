@@ -74,22 +74,37 @@ de cada vez, seguindo o padrão descrito em **"Plano: trilha completa por fase"*
 
 ---
 
-## Fluxo de trabalho por projeto
+## Fluxo de trabalho por sprint
 
-1. Abrir `node devtech.js` → Menu → **Quadro de Projetos** para ver o próximo projeto
-2. Ler `projects/<nivel>/NN-nome/README.md` — cenário, spec e dicas
-3. No menu → **Painel de Sprint**, digitar só `projeto` (sem argumento) — o QA atribui o
-   próximo projeto pendente do nível atual, já com sprint, estimativa e backlog lidos
-   direto do README (nada disso é digitado à mão — ver `add`/`sprint`/`estimativa`
-   removidos do changelog em `UPDATES.md`)
-4. `start <id>` na primeira tarefa do backlog (só uma ativa por vez, na ordem)
-5. Criar o arquivo de implementação na pasta do projeto (nome exato no README, seção
-   "Arquivo a criar") e rodar `npm install && npm test` até passar
-6. `revisar <id>` manda pro QA — ele aprova (+25 XP, timer despausa) ou reprova sozinho
-   depois de alguns segundos
-7. Com todo o backlog `done`: `concluir` — roda `npm test` de novo e marca `.concluido`
-   - Sprint estourada (tarefa ou prazo do projeto): penalidade de XP + aviso, aplicada na
-     hora do estouro, não só na entrega (ver `UPDATES.md`)
+A sprint agora é um **lote de 1 a 3 projetos** (não mais um projeto único quebrado em
+tarefas) — cada projeto do lote é uma unidade só, sem sub-tarefas dentro dele.
+
+1. Abrir `node devtech.js` → Menu → **Painel de Sprint**. O QA já deixa o lote da sprint
+   no BACKLOG sozinho (1 a 3 projetos do seu nível, na ordem da trilha) — não existe mais
+   comando pra "pegar" projeto manualmente.
+2. Ler `projects/<nivel>/NN-nome/README.md` de cada um — cenário, spec e dicas.
+3. `start <nº>` no projeto que for começar (o número aparece no board). Só um projeto fica
+   com o cronômetro ligado por vez, mas dá pra ter vários "em andamento" ao mesmo tempo —
+   `start` num projeto pausado/parado acumula o tempo do anterior e liga o novo.
+4. Criar o arquivo de implementação (nome exato no README) e rodar `npm install && npm
+   test` até passar.
+5. `revisar <nº>` manda pro QA — ele roda lint + `npm test` de verdade na hora (motivo real
+   do erro se reprovar, não é mais sorteio) e leva um tempo **real** pra responder: de
+   minutos a até uns dois dias, mesmo com o simulador fechado nesse meio-tempo. O projeto
+   sai de "ativo" nessa hora — comece outro do backlog em vez de ficar esperando parado.
+6. Quando o QA aprova, o projeto some da coluna EM REVISÃO e vira `aprovado` (mesmo que
+   você esteja trabalhando em outro no momento — **a prioridade continua sempre com o
+   projeto que você está ativamente codando**, o aprovado só espera vez).
+7. `concluir <nº>` no projeto aprovado — roda `npm test` de novo, marca `.concluido` e dá
+   XP (escala com o tamanho do projeto). Se ainda sobrar projeto aberto no lote, a sprint
+   continua; só quando o lote inteiro é entregue é que o QA solta o próximo (1 a 3 de novo).
+   - Prazo por projeto estourado: penalidade de XP + aviso, aplicada na hora do estouro,
+     não só na entrega (ver `UPDATES.md`)
+8. `commit <mensagem>`, a qualquer momento — **é o único ponto em que o jogo é salvo em
+   disco** (XP, sprint, projetos, tempo). Sem commit, nada do que mudou desde o último é
+   persistido; se fechar o simulador sem commitar, o progresso volta pro último commit na
+   próxima vez que abrir. O jogador decide a hora de commitar. `concluir` também salva
+   sozinho, por ser um marco por si só.
 
 ---
 
@@ -186,19 +201,17 @@ Responde dúvidas técnicas durante os projetos, mas nunca escreve código.
 
 ## Comandos do Painel de Sprint
 
+O lote da sprint (1 a 3 projetos) é montado sozinho pelo QA — não existe mais comando pra
+"pegar" projeto. Os números (`<nº>`) são os que aparecem no board.
+
 | Comando | O que faz |
 |---|---|
-| `sprint <nome>` | Renomeia e inicia o timer |
-| `estimativa <h>` | Define estimativa (ex: `estimativa 1.5`) |
-| `inicio` | Inicia timer sem renomear |
-| `add <titulo>` | Adiciona tarefa ao backlog |
-| `start <id>` | Move para Em Andamento |
-| `done <id>` | Conclui tarefa (+25 XP) |
-| `rm <id>` | Remove tarefa |
-| `pausar` | Pausa o timer (salva tempo) |
-| `retomar` | Retoma o timer |
-| `projeto <pasta>` | Define projeto ativo (ex: `estagiario/01-...`) |
-| `concluir` | Roda testes e entrega o projeto |
+| `ver <nº>` | Mostra o status do projeto |
+| `start <nº>` | Começa ou retoma o projeto — vira o "ativo" (o cronômetro segue ele) |
+| `revisar <nº>` | Manda pro QA — roda lint + `npm test` de verdade e aprova/reprova com motivo, em tempo real (minutos a dias) |
+| `concluir <nº>` | Só com o projeto aprovado — roda `npm test` de novo, marca `.concluido` e dá XP |
+| `commit <mensagem>` | A qualquer momento — **é o que salva o jogo em disco** (ver seção de salvamento acima) |
+| `pausar` / `retomar` | Pausa/retoma o timer do projeto ativo |
 | Esc | Volta ao menu principal |
 
 ---

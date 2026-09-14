@@ -26,19 +26,19 @@ function sparkline() {
 
 function timerLine(s) {
   const hora   = horaAtual();
-  const tarefa = s.tarefaAtivaId ? s.tasks.find(t => t.id === s.tarefaAtivaId) : null;
+  const proj   = s.projetoAtivoId ? (s.projetos||[]).find(pr => pr.id === s.projetoAtivoId) : null;
 
-  // o cronometro e por tarefa (o QA passa uma coisa de cada vez) — sem
-  // tarefa ativa, nao tem o que medir.
-  if (!tarefa)
-    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.gray,'—')} nenhuma tarefa em andamento — "start <nº>" pra começar`;
+  // o cronometro e por projeto (o QA pode ter mais de um na sua sprint ao
+  // mesmo tempo) — sem projeto ativo, nao tem o que medir.
+  if (!proj)
+    return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.gray,'—')} nenhum projeto em andamento — "start <nº>" pra começar`;
 
   const ativo   = tempoAtivoTotal(s);
-  const est     = tarefa.estimativaHoras || s.estimativaHoras;
+  const est     = proj.estimativaHoras || s.estimativaHoras;
   const estMs   = est * 3600000;
   const pausado = !s.sessaoIniciadaEm;
   const pct     = ativo / estMs;
-  const rot     = `#${tarefa.id}: `;
+  const rot     = `#${proj.id}: `;
 
   if (pausado)
     return `${clr(C.gray,'Hora:')} ${hora}  ${clr(C.yellow,'⏸ PAUSADO')} — ${rot}${fmtMs(ativo)} / ${est}h`;

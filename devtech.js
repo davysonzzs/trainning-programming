@@ -10,7 +10,7 @@
 
 const { APP }                                            = require('./scripts/core/app');
 const { C, SPIN }                                         = require('./scripts/core/ansi');
-const { NPC, checkAcessoDiario, getLevel, loadProgress,
+const { NPC, checkAcessoDiario, getLevel, haAlteracoesNaoSalvas, loadProgress,
         loadSprint, saveSprint, pushMessage }              = require('./scripts/core/dados');
 const { pushFeed }                                        = require('./scripts/core/app');
 const coreScreen                                          = require('./scripts/core/screen');
@@ -182,7 +182,12 @@ function gracefulExit() {
     s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
     saveSprint(s);
   }
-  process.stdout.write(C.show + '\n\n  Até mais, Dev. Sprint salva.\n\n');
+  // so o "commit" grava em disco — se saiu sem commitar, o que mudou
+  // desde o ultimo commit nao foi salvo (de proposito, ver core/dados.js).
+  const aviso = haAlteracoesNaoSalvas()
+    ? `  ${C.yellow}⚠ Você tem alterações não commitadas — elas NÃO foram salvas.${C.reset}\n`
+    : `  Tudo commitado. Progresso salvo.\n`;
+  process.stdout.write(C.show + `\n\n  Até mais, Dev.\n${aviso}\n`);
   process.exit(0);
 }
 

@@ -91,59 +91,91 @@ function getLevel(xp) {
 
 const PROGRESS_DEFAULT = { name: 'Dev', xp: 0, avisos: 0, atrasadas: 0, ultimoAcessoEm: null, diasSeguidos: 0, diasFaltados: 0 };
 
+// ── Salvamento em disco atrelado ao "commit" ────────────────────────────
+// Nada disso (progress.json, sprint.json, messages.json) vai pro disco na
+// hora que muda. Tudo fica so em memoria (nesse cache) ate o jogador rodar
+// "commit <id> <mensagem>" (ver scripts/telas/sprint.js) — e ai que
+// persistirJogo() grava tudo de uma vez. Fechar o simulador sem commitar
+// (Ctrl+C, queda de luz, o que for) perde o que mudou desde o ultimo
+// commit: na proxima abertura, load* le de novo o que estava em disco,
+// ou seja, o ultimo estado commitado. E assim que da peso de verdade ao
+// comando commit, igual perder um save por nao ter salvo o jogo.
+let _sprintCache   = null;
+let _progressCache = null;
+let _messagesCache = null;
+let _sujo = false; // true = tem mudanca desde o ultimo commit
+
 function loadProgress() {
-  if (!fs.existsSync(PROGRESS_FILE)) return { ...PROGRESS_DEFAULT };
+  if (_progressCache) return _progressCache;
+  if (!fs.existsSync(PROGRESS_FILE)) { _progressCache = { ...PROGRESS_DEFAULT }; return _progressCache; }
   try {
     const p = JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf8'));
     for (const k of Object.keys(PROGRESS_DEFAULT)) if (!(k in p)) p[k] = PROGRESS_DEFAULT[k];
-    return p;
-  } catch { return { ...PROGRESS_DEFAULT }; }
+    _progressCache = p;
+  } catch { _progressCache = { ...PROGRESS_DEFAULT }; }
+  return _progressCache;
 }
 
-function saveProgress(p) { fs.writeFileSync(PROGRESS_FILE, JSON.stringify(p, null, 2)); }
+function saveProgress(p) { _progressCache = p; _sujo = true; }
 
+// Formato atual: um LOTE de projetos (s.projetos), nao mais um unico
+// projeto quebrado em tarefas (s.tasks) — ver scripts/telas/sprint.js.
 function loadSprint() {
+  if (_sprintCache) return _sprintCache;
   if (!fs.existsSync(SPRINT_FILE)) {
-    const init = { sprint: 'Sprint 1', nextId: 1, tasks: [], tempoAtivoMs: 0,
-      sessaoIniciadaEm: null, pausadoEm: null, estimativaHoras: 2, projetoAtual: null,
-      extensoesQA: 0, sprintIniciadaEm: null, prazoDias: 15, tarefaAtivaId: null,
-      nextPr: 1, ciRuns: [], projetoEmEspera: null };
-    fs.writeFileSync(SPRINT_FILE, JSON.stringify(init, null, 2));
+    const init = { sprintNum: 0, nextId: 1, nextPr: 1, projetos: [],
+      projetoAtivoId: null, projetoAtual: null,
+      tempoAtivoMs: 0, sessaoIniciadaEm: null, pausadoEm: null, ciRuns: [] };
+    _sprintCache = init;
     return init;
   }
   try {
     const d = JSON.parse(fs.readFileSync(SPRINT_FILE, 'utf8'));
+    // salvamento de uma versao anterior (projeto unico + tarefas) — sem
+    // migracao automatica de progresso no meio (o lote novo assume do zero
+    // ao entrar em "Painel de Sprint"), so garante que os campos existem.
+    if (!('projetos'         in d) || !Array.isArray(d.projetos)) d.projetos = [];
+    if (!('sprintNum'        in d)) d.sprintNum        = 0;
+    if (!('nextId'           in d)) d.nextId           = 1;
+    if (!('nextPr'           in d)) d.nextPr           = 1;
+    if (!('projetoAtivoId'   in d)) d.projetoAtivoId   = null;
+    if (!('projetoAtual'     in d)) d.projetoAtual     = null;
     if (!('tempoAtivoMs'     in d)) d.tempoAtivoMs     = 0;
     if (!('sessaoIniciadaEm' in d)) d.sessaoIniciadaEm = null;
     if (!('pausadoEm'        in d)) d.pausadoEm        = null;
-    if (!('projetoAtual'     in d)) d.projetoAtual     = null;
-    if (!('estimativaHoras'  in d)) d.estimativaHoras  = 2;
-    if (!('extensoesQA'      in d)) d.extensoesQA      = 0;
-    if (!('sprintIniciadaEm' in d)) d.sprintIniciadaEm = null;
-    if (!('prazoDias'        in d)) d.prazoDias        = 15;
-    if (!('tarefaAtivaId'    in d)) d.tarefaAtivaId    = null;
-    if (!('nextPr'           in d)) d.nextPr           = 1;
     if (!('ciRuns'           in d)) d.ciRuns           = [];
-    // projeto "parado" esperando revisao enquanto o dev troca pra outro
-    // (comando "outro"/"voltar") — null quando so tem 1 projeto em jogo.
-    if (!('projetoEmEspera'  in d)) d.projetoEmEspera  = null;
+    _sprintCache = d;
     return d;
   } catch { return null; }
 }
 
-function saveSprint(s) { fs.writeFileSync(SPRINT_FILE, JSON.stringify(s, null, 2)); }
+function saveSprint(s) { _sprintCache = s; _sujo = true; }
 
 function loadMessages() {
-  if (!fs.existsSync(MESSAGES_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf8')); } catch { return []; }
+  if (_messagesCache) return _messagesCache;
+  if (!fs.existsSync(MESSAGES_FILE)) { _messagesCache = []; return _messagesCache; }
+  try { _messagesCache = JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf8')); }
+  catch { _messagesCache = []; }
+  return _messagesCache;
 }
 
 function pushMessage(npc, txt) {
   const msgs = loadMessages();
   msgs.push({ tag: npc.tag, nome: npc.nome, texto: txt });
   if (msgs.length > 20) msgs.splice(0, msgs.length - 20);
-  fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msgs, null, 2));
+  _messagesCache = msgs; _sujo = true;
 }
+
+// So aqui e que vai pro disco de verdade — chamado pelo "commit" (e por
+// "concluir", que fecha um projeto inteiro e ja pressupoe tarefas commitadas).
+function persistirJogo() {
+  if (_sprintCache)   fs.writeFileSync(SPRINT_FILE, JSON.stringify(_sprintCache, null, 2));
+  if (_progressCache) fs.writeFileSync(PROGRESS_FILE, JSON.stringify(_progressCache, null, 2));
+  if (_messagesCache) fs.writeFileSync(MESSAGES_FILE, JSON.stringify(_messagesCache, null, 2));
+  _sujo = false;
+}
+
+function haAlteracoesNaoSalvas() { return _sujo; }
 
 function tempoAtivoTotal(s) {
   let t = s.tempoAtivoMs || 0;
@@ -222,4 +254,4 @@ function checkAcessoDiario() {
   return { tipo: 'falta', dias: faltados, xp: penalidade };
 }
 
-module.exports = { ROOT, DATA_DIR, SPRINT_FILE, PROGRESS_FILE, MESSAGES_FILE, AULAS_FILE, PROJECTS_DIR, NPC, MSGS_AMBIENTE, INCIDENTES, RESOLUCOES, LEVELS, getLevel, PROGRESS_DEFAULT, loadProgress, saveProgress, loadSprint, saveSprint, loadMessages, pushMessage, tempoAtivoTotal, fmtMs, horaAtual, dataAtual, contarProjetos, localDateStr, diasEntreDatas, checkAcessoDiario };
+module.exports = { ROOT, DATA_DIR, SPRINT_FILE, PROGRESS_FILE, MESSAGES_FILE, AULAS_FILE, PROJECTS_DIR, NPC, MSGS_AMBIENTE, INCIDENTES, RESOLUCOES, LEVELS, getLevel, PROGRESS_DEFAULT, loadProgress, saveProgress, loadSprint, saveSprint, loadMessages, pushMessage, tempoAtivoTotal, fmtMs, horaAtual, dataAtual, contarProjetos, localDateStr, diasEntreDatas, checkAcessoDiario, persistirJogo, haAlteracoesNaoSalvas };

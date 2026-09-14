@@ -1,5 +1,25 @@
 # Atualizações
 
+## 2026-09-14 (2)
+- 🔨 Reformulação grande do Painel de Sprint: a sprint agora é um **lote de 1 a 3 projetos**
+  (o QA solta sozinho, na ordem da trilha) em vez de um único projeto quebrado em tarefas —
+  cada projeto é uma unidade só. `start <nº>` liga/troca qual projeto está com o cronômetro
+  ativo; dá pra ter vários "em andamento" ao mesmo tempo, sem perder progresso de nenhum
+- ✨ `revisar` agora roda lint + `npm test` **de verdade** na hora (não sorteio) e o QA leva
+  um tempo real pra responder — de minutos a até uns dois dias, mesmo com o app fechado. Se
+  reprovar, a mensagem traz o motivo real do erro (teste que falhou, módulo faltando...)
+- ✨ Enquanto um projeto espera o QA, a prioridade continua sempre com o projeto que você
+  está ativamente codando — resolver uma revisão em segundo plano nunca troca o foco sozinho
+- ✨ `commit` virou **o salvamento do jogo**: `commit <mensagem>` grava XP/sprint/projetos em
+  disco — sem commit, nada do que mudou desde o último é persistido (fechar sem commitar
+  volta pro último salvo). `concluir` também salva, por ser um marco por si só
+- ✨ Removidos os comandos `projeto`, `outro`, `voltar`, `add`, `done`, `rm`, `inicio` do
+  Painel de Sprint — o lote de projetos e a troca de foco (`start <nº>`) já cobrem o que eles
+  faziam, sem precisar escolher/parkear projeto manualmente
+- ✨ Badges no Menu Principal (novidade real de cada tela: incidente ativo, projeto aprovado
+  esperando `concluir`, PR em revisão) — o Painel de Sprint é a tela mais usada, isso ajuda a
+  lembrar de passar pelas outras
+
 ## 2026-09-14
 - 🐛 Corrigido: ao entregar um projeto, a sprint não reiniciava — o Backlog continuava acumulando tarefas antigas já concluídas e a numeração só crescia ([6], [7], [8]...)
 - ✨ `concluir` agora encadeia direto com o próximo projeto da fila: sprint reinicia sozinha (backlog limpo, ids do zero, prazo em dias recalculado pela dificuldade do novo projeto) — não precisa mais digitar `projeto` de novo

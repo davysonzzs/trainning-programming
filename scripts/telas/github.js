@@ -11,13 +11,13 @@ const { render } = require('../core/screen');
 const { renderMarkdown } = require('../core/texto');
 
 function issuesDoBacklog(s) {
-  return s.tasks.map(t => {
-    const fechada = t.status === 'done';
+  return s.projetos.map(pr => {
+    const fechada = pr.status === 'done';
     const cor     = fechada ? C.magenta : C.green;
     const icon    = fechada ? '●' : '○';
     const estado  = fechada ? 'CLOSED' : 'OPEN';
-    const num     = `#${t.id}`.padEnd(5);
-    const titulo  = (t.title.length > 44 ? t.title.slice(0,43)+'…' : t.title).padEnd(44);
+    const num     = `#${pr.id}`.padEnd(5);
+    const titulo  = (pr.titulo.length > 44 ? pr.titulo.slice(0,43)+'…' : pr.titulo).padEnd(44);
     return `  ${clr(cor,icon)} ${clr(C.gray,num)} ${titulo} ${clr(cor,estado)}`;
   });
 }
@@ -27,16 +27,15 @@ function prsDoBacklog(s) {
   // mostra se a ultima Action (concluir) passou, antes mesmo do merge.
   const ultima = ultimaAction(s);
   const ciTag  = !ultima ? clr(C.gray,'CI —') : ultima.sucesso ? clr(C.green,'CI ✓') : clr(C.red,'CI ✗');
-  return s.tasks.filter(t => t.prNumero).map(t => {
+  return s.projetos.filter(pr => pr.prNumero).map(pr => {
     let estado, cor;
-    if (t.status === 'done')          { estado = 'MERGEADO';                    cor = C.magenta; }
-    else if (t.status === 'revisao')  { estado = 'ABERTO — em revisão';         cor = C.green;   }
-    else if (t.status === 'aprovado') { estado = 'APROVADO — commit';           cor = C.cyan;    }
-    else if (t.status === 'aceite')   { estado = 'COMMITADO — aceite';          cor = C.yellow;  }
-    else                              { estado = 'MUDANÇAS SOLICITADAS';        cor = C.red;     }
-    const num    = `#PR${t.prNumero}`.padEnd(6);
-    const titulo = (t.title.length > 26 ? t.title.slice(0,25)+'…' : t.title).padEnd(26);
-    return `  ${clr(cor,'●')} ${clr(C.gray,num)} ${titulo} ${clr(C.gray,'closes #'+t.id).padEnd(11)} ${ciTag}  ${clr(cor,estado)}`;
+    if (pr.status === 'done')          { estado = 'MERGEADO';                    cor = C.magenta; }
+    else if (pr.status === 'revisao')  { estado = 'ABERTO — em revisão';         cor = C.green;   }
+    else if (pr.status === 'aprovado') { estado = 'APROVADO — falta concluir';   cor = C.cyan;    }
+    else                                { estado = 'MUDANÇAS SOLICITADAS';        cor = C.red;     }
+    const num    = `#PR${pr.prNumero}`.padEnd(6);
+    const titulo = (pr.titulo.length > 26 ? pr.titulo.slice(0,25)+'…' : pr.titulo).padEnd(26);
+    return `  ${clr(cor,'●')} ${clr(C.gray,num)} ${titulo} ${clr(C.gray,'closes #'+pr.id).padEnd(11)} ${ciTag}  ${clr(cor,estado)}`;
   });
 }
 

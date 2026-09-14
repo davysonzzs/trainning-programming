@@ -2,26 +2,37 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 const { C, INN, LINE, bold, clr, dim, row, stripAnsi } = require('../core/ansi');
 const { APP } = require('../core/app');
-const { LEVELS, MSGS_AMBIENTE, NPC, PROJECTS_DIR, contarProjetos, fmtMs, getLevel, loadMessages, loadProgress, loadSprint, pushMessage, saveProgress, saveSprint, tempoAtivoTotal } = require('../core/dados');
+const { LEVELS, MSGS_AMBIENTE, NPC, PROJECTS_DIR, contarProjetos, getLevel, haAlteracoesNaoSalvas, loadMessages, loadProgress, loadSprint, persistirJogo, pushMessage, saveProgress, saveSprint, tempoAtivoTotal } = require('../core/dados');
 const { timerLine } = require('../core/draw-utils');
 const { branchEsperadaProjeto, gitBranchAtual } = require('../core/gitflow');
-const { rodarLint } = require('../core/lint');
+const { rodarLint, rodarTestes } = require('../core/lint');
 const { goTo, render } = require('../core/screen');
 const { wrapPrefixedColored } = require('../core/texto');
 const { precisaRevisao1a1 } = require('./revisao1a1');
 
+// ─────────────────────────────────────────────────────────────────────────
+//  MODELO: a sprint agora e um LOTE de PROJETOS (1 a 3), nao mais um unico
+//  projeto quebrado em tarefas. O QA te da o lote inteiro de uma vez; voce
+//  escolhe a ordem, e pode trabalhar em outro enquanto um espera o QA.
+//  Cada projeto e uma unidade so — sem sub-tarefas dentro dele.
+//
+//  s.projetos            lista de projetos do lote atual + entregues
+//  s.projetoAtivoId       id do projeto com o cronometro rodando agora (so 1)
+//  s.projetoAtual         espelho do rel do projeto ativo (outras telas leem isso)
+//  s.tempoAtivoMs/         cronometro global, mas sempre do projeto ativo — o
+//  s.sessaoIniciadaEm      tempo junta no proprio projeto quando ele pausa
+//  ("start <id>" troca ativo: salva o tempo no projeto que sai, zera pro que entra)
+// ─────────────────────────────────────────────────────────────────────────
+
 function buildSprint(s) {
   const p        = loadProgress();
-  const backlog  = s.tasks.filter(t => t.status==='backlog');
-  const doing    = s.tasks.filter(t => t.status==='doing');
-  // "aprovado" (QA ok, esperando o commit real) e "aceite" (commitado,
-  // esperando a PR ser aceita) continuam visualmente em EM REVISÃO — a
-  // tarefa so sai dali quando a PR de fato mergeia (done).
-  const revisao  = s.tasks.filter(t => t.status==='revisao' || t.status==='aprovado' || t.status==='aceite');
-  const done     = s.tasks.filter(t => t.status==='done');
+  const projetos = s.projetos || [];
+  const backlog  = projetos.filter(pr => pr.status==='backlog');
+  const doing    = projetos.filter(pr => pr.status==='doing');
+  const revisao  = projetos.filter(pr => pr.status==='revisao' || pr.status==='aprovado');
+  const done     = projetos.filter(pr => pr.status==='done');
   const rows     = Math.max(backlog.length, doing.length, revisao.length, done.length, 1);
   const pausado  = !s.sessaoIniciadaEm;
   const COL      = 18;   // 4 colunas de 18 + 3 separadores "│" + 1 indent = 76 = INN
@@ -31,35 +42,31 @@ function buildSprint(s) {
   // ambiente trocar a cada tick, parecendo um monte de mensagem piscando.
   const aMsg     = MSGS_AMBIENTE[Math.floor(Date.now() / 15000) % MSGS_AMBIENTE.length];
 
-  // sprint de verdade: prazo em dias corridos, roda mesmo com o app fechado
-  const diasRestantes = s.sprintIniciadaEm
-    ? Math.max(0, (s.prazoDias||15) - Math.floor((Date.now()-new Date(s.sprintIniciadaEm).getTime())/86400000))
-    : null;
-
-  function cell(task, col) {
-    if (!task) return ' '.repeat(col);
-    const s2 = `[${task.id}] ${task.title}`;
+  function cell(pr, col) {
+    if (!pr) return ' '.repeat(col);
+    const s2 = `[${pr.id}] ${pr.titulo}`;
     return (s2.length > col ? s2.slice(0,col-1)+'…' : s2).padEnd(col);
   }
 
-  function comSufixo(task, sufixo) {
-    if (!task) return ' '.repeat(COL);
-    const s2 = `[${task.id}] ${task.title}${sufixo}`;
+  function comSufixo(pr, sufixo) {
+    if (!pr) return ' '.repeat(COL);
+    const s2 = `[${pr.id}] ${pr.titulo}${sufixo}`;
     return (s2.length > COL ? s2.slice(0,COL-1)+'…' : s2).padEnd(COL);
   }
 
-  function doingCell(task) {
-    if (!task) return ' '.repeat(COL);
-    const suf = pausado ? ' (pausado)' : ` (${Math.floor((Date.now()-new Date(task.startedAt||Date.now()).getTime())/60000)}m)`;
-    return comSufixo(task, suf);
+  function doingCell(pr) {
+    if (!pr) return ' '.repeat(COL);
+    const ativo = pr.id === s.projetoAtivoId;
+    const suf   = !ativo ? ' (parado)' : pausado ? ' (pausado)' : ` (${Math.floor(tempoAtivoTotal(s)/60000)}m)`;
+    return comSufixo(pr, suf);
   }
 
-  function revisaoCell(task) {
-    if (!task) return ' '.repeat(COL);
-    if (task.status === 'aprovado') return comSufixo(task, ' ✔ commit');
-    if (task.status === 'aceite')   return comSufixo(task, ' ⏳ PR');
-    const min = Math.floor((Date.now()-new Date(task.enviadoRevisaoEm||Date.now()).getTime())/60000);
-    return comSufixo(task, ` ⏳${min>0?min+'m':''}`);
+  function revisaoCell(pr) {
+    if (!pr) return ' '.repeat(COL);
+    if (pr.status === 'aprovado') return comSufixo(pr, ' ✔ concluir');
+    const min = Math.floor((Date.now()-new Date(pr.enviadoRevisaoEm||Date.now()).getTime())/60000);
+    const tempo = min >= 1440 ? Math.floor(min/1440)+'d' : min >= 60 ? Math.floor(min/60)+'h' : min>0 ? min+'m' : '';
+    return comSufixo(pr, ` ⏳${tempo}`);
   }
 
   // pad ANTES de colorir, pra não contar os códigos ANSI como largura
@@ -73,19 +80,14 @@ function buildSprint(s) {
 
   let o = C.cls + C.hide;
   o += `╔${LINE}╗\n`;
-  o += row(` ${bold('DEVTECH SISTEMAS S.A.')}  ${' '.repeat(26)}Dev: ${bold(p.name)}  XP: ${clr(C.cyan,String(p.xp))}`) + '\n';
-  const espera = s.projetoEmEspera ? clr(C.yellow, `  ⏳ esperando: ${s.projetoEmEspera.projetoAtual}`) : '';
-  o += row(` Sprint: ${bold(s.sprint)}${pausado ? '  '+clr(C.yellow,'[PAUSADO]') : ''}  ${s.projetoAtual ? clr(C.gray,'  proj: '+s.projetoAtual) : ''}${espera}`) + '\n';
-  if (diasRestantes !== null) {
-    const cor = diasRestantes <= 2 ? C.red : diasRestantes <= 5 ? C.yellow : C.green;
-    const ext = s.extensoesQA > 0 ? clr(C.gray, `  (${s.extensoesQA} reestimativa(s))`) : '';
-    o += row(` ${clr(C.gray,'Prazo:')} ${clr(cor, `${diasRestantes} dia${diasRestantes===1?'':'s'} restante${diasRestantes===1?'':'s'}`)} de ${s.prazoDias||15} corridos${ext}`) + '\n';
-  }
+  const naoSalvo = haAlteracoesNaoSalvas() ? '  ' + clr(C.yellow, '● não salvo') : '  ' + clr(C.gray, '✔ salvo');
+  o += row(` ${bold('DEVTECH SISTEMAS S.A.')}  ${' '.repeat(26)}Dev: ${bold(p.name)}  XP: ${clr(C.cyan,String(p.xp))}${naoSalvo}`) + '\n';
+  o += row(` Sprint ${clr(C.gray,String(s.sprintNum||1))}${pausado ? '  '+clr(C.yellow,'[PAUSADO]') : ''}  ${s.projetoAtual ? clr(C.gray,'  ativo: '+s.projetoAtual) : clr(C.gray,'  nenhum projeto ativo')}`) + '\n';
   o += row(` ${timerLine(s)}`) + '\n';
   o += `╠${LINE}╣\n`;
   o += quadroRow(
     padVisible(bold(clr(C.cyan,'BACKLOG')), COL),
-    padVisible(bold(clr(C.yellow,'DESENVOLV.')), COL),
+    padVisible(bold(clr(C.yellow,'ANDAMENTO')), COL),
     padVisible(bold(clr(C.magenta,'EM REVISÃO')), COL),
     bold(clr(C.green,'CONCLUÍDO')),
   ) + '\n';
@@ -120,8 +122,8 @@ function buildSprint(s) {
     o += `╠${LINE}╣\n`;
   }
   if (APP.lastFb) o += row(` ${APP.lastFb}`) + '\n', o += `╠${LINE}╣\n`;
-  o += row(dim('  projeto  (pega o próximo da sua fila)   outro / voltar  (troca sem perder progresso)')) + '\n';
-  o += row(dim('  ver/start/revisar/commit/rm <nº>   pausar   retomar   concluir')) + '\n';
+  o += row(dim('  ver/start/revisar <nº>   concluir <nº>   commit <mensagem>')) + '\n';
+  o += row(dim('  pausar   retomar')) + '\n';
   o += `╠${LINE}╣\n`;
   o += row(` ${clr(C.cyan,'>')} ${APP.inputBuf}${clr(C.gray,'█')}`) + '\n';
   o += `╚${LINE}╝\n`;
@@ -141,11 +143,8 @@ function hashCommitFalso() {
 }
 
 // O dev não escolhe o projeto — recebe o que tá na fila do próprio nível.
-// Acha o primeiro projeto ainda não entregue dentro da pasta do nível atual.
-// `excluir` (lista de rel paths) deixa de fora projetos ja "em uso" — usado
-// pelo comando "outro" pra nao sugerir o mesmo projeto que ja ta parado
-// esperando revisao (senao proximoProjetoNivel() sempre devolveria ele de
-// volta, por ser o primeiro nao entregue da pasta).
+// Acha o primeiro projeto ainda não entregue dentro da pasta do nível atual,
+// pulando os que ja estao em s.projetos (backlog, em andamento ou ja entregues).
 function proximoProjetoNivel(excluir) {
   const p  = loadProgress();
   const lv = getLevel(p.xp).lv;
@@ -163,22 +162,72 @@ function proximoProjetoNivel(excluir) {
   return null; // tudo entregue neste nivel
 }
 
-// Bloqueado de verdade: nada pra iniciar no projeto em foco (o unico
-// "doing" possivel ja foi mandado pra revisao), e nem trocando de projeto
-// resolve — o parado (se tiver) tambem ta sem nada pra iniciar, ou nem tem
-// projeto parado e a fila do nivel ja acabou. Maximo de 2 projetos "em
-// jogo" ao mesmo tempo (o comando "outro" ja barra um 3º) — se os dois
-// travarem no QA junto, so resta esperar. Bom momento pra estudar.
-function devEstaBloqueado(s) {
-  // "aprovado" nao e bloqueio de verdade — o dev tem uma acao pra fazer
-  // (commitar). "aceite" ja e so esperar o aceite da PR, igual 'revisao'.
-  const focoLivre = s.tasks.some(t => ['backlog','doing','aprovado'].includes(t.status));
-  if (focoLivre) return false;
-  if (s.projetoEmEspera) {
-    const paradoLivre = (s.projetoEmEspera.tasks || []).some(t => ['backlog','doing','aprovado'].includes(t.status));
-    return !paradoLivre; // os dois travados no QA
+// Solta um lote novo (1 a 3 projetos, na ordem da trilha) quando o lote
+// atual acabou (tudo 'done' ou nao tem nenhum ainda) — so acontece quando
+// o jogador termina a sprint (concluir todos), nunca no meio dela.
+function projetosDisponiveisNoNivel(nivelFolder, jaNoJogo) {
+  const nivelDir = path.join(PROJECTS_DIR, nivelFolder);
+  if (!fs.existsSync(nivelDir)) return [];
+  return fs.readdirSync(nivelDir)
+    .filter(pj => fs.statSync(path.join(nivelDir, pj)).isDirectory())
+    .sort()
+    .map(pj => ({ nivel: nivelFolder, pj, rel: `${nivelFolder}/${pj}` }))
+    .filter(pr => !jaNoJogo.has(pr.rel) && !fs.existsSync(path.join(PROJECTS_DIR, pr.rel, '.concluido')));
+}
+
+function distribuirNovoLote(s) {
+  const p  = loadProgress();
+  const { lv, idx } = getLevel(p.xp);
+  const jaNoJogo = new Set((s.projetos||[]).map(pr => pr.rel));
+
+  // O XP pode passar da nota de corte do proximo nivel antes dele ter
+  // projeto de verdade pronto (so Estagiario tem os 30 completos por
+  // enquanto — os outros niveis sao so um README "aguardando novo
+  // cliente", ver docs/plan.md). Em vez de travar o jogador sem backlog,
+  // desce pelos niveis anteriores ate achar um que ainda tenha projeto —
+  // ele continua produtivo no nivel que EXISTE, nao no que o XP diz.
+  let nivelEscolhido = lv.folder, disponiveis = projetosDisponiveisNoNivel(lv.folder, jaNoJogo);
+  for (let i = idx; disponiveis.length === 0 && i >= 0; i--) {
+    nivelEscolhido = LEVELS[i].folder;
+    disponiveis = projetosDisponiveisNoNivel(nivelEscolhido, jaNoJogo);
   }
-  return !proximoProjetoNivel([s.projetoAtual]);
+  if (!disponiveis.length) return 0;
+
+  const qtd = Math.min(disponiveis.length, 1 + Math.floor(Math.random()*3)); // 1 a 3
+  const escolhidos = disponiveis.slice(0, qtd);
+  s.sprintNum = (s.sprintNum||0) + 1;
+  s.projetos = s.projetos || [];
+  s.nextId = s.nextId || 1;
+  for (const prox of escolhidos) {
+    const meta = metaDoProjeto(prox.nivel, prox.pj);
+    s.projetos.push({
+      id: s.nextId++, nivel: prox.nivel, pj: prox.pj, rel: prox.rel,
+      titulo: prox.pj.replace(/^\d+-/, '').replace(/-/g, ' '),
+      sprintLabel: meta.sprint || `Sprint ${s.sprintNum}`,
+      estimativaHoras: meta.estimativaHoras || 2,
+      status: 'backlog',
+      prazoDias: prazoSprintPara(prox.nivel, prox.pj),
+      atribuidoEm: new Date().toISOString(),
+      tempoAtivoMs: 0, extensoesQA: 0,
+    });
+  }
+  pushMessage(NPC.qa, `Sprint ${s.sprintNum}: coloquei ${escolhidos.length} projeto(s) no seu backlog — ${escolhidos.map(e=>e.pj).join(', ')}.`);
+  return escolhidos.length;
+}
+
+// Garante que sempre tem algo pra fazer: so busca lote novo quando o
+// anterior foi inteiramente entregue (nunca no meio, mesmo que o dev
+// termine um projeto e outros do lote ainda estejam abertos).
+function garantirLote(s) {
+  const abertos = (s.projetos||[]).some(pr => pr.status !== 'done');
+  if (abertos) return false;
+  return distribuirNovoLote(s) > 0;
+}
+
+// Bloqueado de verdade: nenhum projeto pra iniciar/continuar/concluir —
+// so resta esperar o QA responder alguma revisão. Bom momento pra estudar.
+function devEstaBloqueado(s) {
+  return !(s.projetos||[]).some(pr => ['backlog','doing','aprovado'].includes(pr.status));
 }
 
 // Prazo da sprint (dias corridos) varia com o nivel — nao faz sentido um
@@ -201,11 +250,7 @@ function parseEstimativaTexto(txt) {
 }
 
 // O nome da sprint e a estimativa não são o dev que inventa — já vêm
-// definidos no README do projeto (é o QA/PM que decide isso). Lê de lá.
-// A seção de tarefas varia de nome ("Tarefas", "Tarefas para o Sprint",
-// "Tarefas sugeridas para o Sprint"...) e de formato: uns já vêm como
-// comando (`add texto`), outros como checklist (`- [ ] texto`). Aceita
-// os dois e devolve só os títulos, prontos pra virar tarefas no backlog.
+// definidos no README do projeto (é o QA/PM que decide isso).
 function extrairTarefas(raw) {
   const linhas = raw.split('\n');
   let dentro = false;
@@ -236,73 +281,64 @@ function metaDoProjeto(nivel, pj) {
 }
 
 const RESP = {
-  start:     [(id)=>[NPC.lead,`#${id} em andamento. Avisa se travar.`], (id)=>[NPC.dev,`Boa sorte na #${id}!`]],
-  revisar:   [(id)=>[NPC.qa,`Recebi a #${id}, vou dar uma olhada.`], (id)=>[NPC.dev,`Mandei a #${id} pra revisão. Torcendo.`]],
-  aprovado:  [(id)=>[NPC.qa,`Testei #${id}. Passou, aprovado! Pode commitar.`], (id)=>[NPC.lead,`#${id} aprovada no code review. Não esquece o commit no imperativo.`]],
-  reprovado: [(id)=>[NPC.qa,`#${id} voltou — achei um problema, dá uma olhada de novo.`], (id)=>[NPC.lead,`#${id} precisa de ajuste antes de fechar.`]],
-  commitado: [(id)=>[NPC.lead,`Commit da #${id} recebido. Mandei a PR pra aprovação.`], (id)=>[NPC.dev,`Boa, #${id} commitada. Agora é esperar o aceite.`]],
-  aceito:    [(id)=>[NPC.lead,`PR da #${id} aceita e mergeada. Show!`], (id)=>[NPC.pm,`#${id} entregue de vez — mergeada.`]],
-  pausar:    [()=>[NPC.dev,`Ate mais!`], ()=>[NPC.lead,`Salva antes de sair.`]],
+  start:     [(id)=>[NPC.lead,`#${id} em andamento. Avisa se travar.`], (id)=>[NPC.dev,`Boa sorte no #${id}!`]],
+  revisar:   [(id)=>[NPC.qa,`Recebi o #${id}, vou dar uma olhada. Pode levar um tempo.`], (id)=>[NPC.dev,`Mandei o #${id} pra revisão. Torcendo.`]],
+  aprovado:  [(id)=>[NPC.qa,`Testei o #${id}. Passou, aprovado! Pode concluir.`], (id)=>[NPC.lead,`#${id} aprovado no code review.`]],
+  pausar:    [()=>[NPC.dev,`Ate mais!`], ()=>[NPC.lead,`Não esquece de commitar antes de sair.`]],
   retomar:   [()=>[NPC.dev,`Bem-vindo de volta!`], ()=>[NPC.lead,`Bora terminar.`]],
 };
 
-// Simula o tempo que o QA leva pra olhar a tarefa (8-20s reais). Ao resolver,
-// recarrega o sprint do disco (o dev pode ter mexido em outra coisa nesse
-// meio-tempo) e só aplica se a tarefa ainda estiver esperando revisão.
-// A resolucao da revisao do QA e por DATA (task.revisaoResolveEm), nao por
-// setTimeout em memoria — um setTimeout morre se o simulador for fechado
-// antes da hora, deixando a tarefa presa em "EM REVISAO" pra sempre. Assim,
-// ela resolve sozinha na proxima vez que o loop rodar, mesmo que isso seja
-// so quando o jogador abrir o app de novo, dias depois.
+// Simula o tempo real que o QA leva pra olhar o projeto — de minutos a
+// alguns dias (a maioria resolve rapido, mas de vez em quando demora, igual
+// review de verdade). A resolucao e por DATA (revisaoResolveEm), nao por
+// setTimeout em memoria — sobrevive a fechar o simulador antes da hora,
+// resolvendo sozinha na proxima vez que o loop rodar (mesmo que seja so
+// quando o jogador abrir o app de novo, dias depois).
+function delayRevisaoMs() {
+  const min3 = 3 * 60000, dias2 = 2 * 86400000;
+  // Math.random()*Math.random() enviesa pro lado curto (a maioria das
+  // revisoes resolve rapido), mas ainda deixa escapar ate 2 dias de vez
+  // em quando — nem todo PR e revisado na hora, nem no jogo.
+  return min3 + Math.random() * Math.random() * dias2;
+}
+
 function checkRevisoesQA() {
   const s = loadSprint();
   if (!s) return;
   let mudou = false;
 
-  for (const task of s.tasks) {
-    if (task.status === 'revisao') {
-      // tarefa presa de uma sessao anterior (fechada antes da hora, ou de
-      // uma versao mais antiga do simulador) — resolve agora mesmo.
-      if (!task.revisaoResolveEm) {
-        task.revisaoResolveEm = new Date().toISOString();
-        task.revisaoAprovada  = Math.random() < 0.7;
-      }
-      if (Date.now() < new Date(task.revisaoResolveEm).getTime()) continue;
+  // sempre tem algo pra fazer — se o lote anterior foi todo entregue,
+  // solta o proximo antes de checar revisoes.
+  if (garantirLote(s)) mudou = true;
 
-      if (task.revisaoAprovada) {
-        // QA aprovou, mas so vira "done" (e XP) depois do commit de verdade
-        // e do aceite da PR — ver o comando "commit" e o bloco 'aceite' abaixo.
-        task.status = 'aprovado'; task.aprovadoEm = new Date().toISOString();
-        const [n, t] = pick(RESP.aprovado, task.id); pushMessage(n, t);
-        APP._lastRevisaoMsg = clr(C.green, `★ #${task.id} aprovada pelo QA! Faz o commit de verdade e roda "commit ${task.id}".`);
-        // acabou de codar — o cronometro fica livre ate a proxima ser iniciada
-        s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
-      } else {
-        task.status = 'doing';
-        const [n, t] = pick(RESP.reprovado, task.id); pushMessage(n, t);
-        APP._lastRevisaoMsg = clr(C.yellow, `#${task.id} voltou pra desenvolvimento — o QA pediu ajuste.`);
-        // mesma tarefa continua ativa — o relogio dela volta a rodar de onde parou
-        s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
-      }
-      delete task.revisaoResolveEm;
-      delete task.revisaoAprovada;
-      mudou = true;
-      continue;
+  for (const proj of (s.projetos||[])) {
+    if (proj.status !== 'revisao') continue;
+
+    // projeto preso de uma sessao anterior (fechada antes da hora, ou de
+    // uma versao mais antiga do simulador) — resolve agora mesmo.
+    if (!proj.revisaoResolveEm) {
+      proj.revisaoResolveEm = new Date().toISOString();
+      proj.revisaoAprovada  = Math.random() < 0.7;
+      if (!proj.revisaoAprovada) proj.motivoReprovacao = 'Encontrei um problema durante a revisão.';
     }
+    if (Date.now() < new Date(proj.revisaoResolveEm).getTime()) continue;
 
-    if (task.status === 'aceite') {
-      // tarefa presa de uma sessao anterior — resolve agora mesmo.
-      if (!task.aceiteResolveEm) task.aceiteResolveEm = new Date().toISOString();
-      if (Date.now() < new Date(task.aceiteResolveEm).getTime()) continue;
-
-      task.status = 'done'; task.completedAt = new Date().toISOString();
-      task.tempoGastoMs = tempoAtivoTotal(s); // registro do tempo real gasto nela
-      const p = loadProgress(); p.xp += 25; saveProgress(p);
-      const [n, t] = pick(RESP.aceito, task.id); pushMessage(n, t);
-      APP._lastRevisaoMsg = clr(C.green, `★ PR da #${task.id} aceita e mergeada! +25 XP`);
-      delete task.aceiteResolveEm;
-      mudou = true;
+    // Prioridade continua com o que o dev estiver fazendo agora — resolver
+    // uma revisao NUNCA mexe no projeto ativo/cronometro de outro.
+    if (proj.revisaoAprovada) {
+      proj.status = 'aprovado'; proj.aprovadoEm = new Date().toISOString();
+      const [n, t] = pick(RESP.aprovado, proj.id); pushMessage(n, t);
+      APP._lastRevisaoMsg = clr(C.green, `★ #${proj.id} "${proj.titulo}" aprovado pelo QA! Roda "concluir ${proj.id}".`);
+    } else {
+      proj.status = 'doing';
+      const motivo = proj.motivoReprovacao || 'Encontrei um problema durante a revisão.';
+      pushMessage(NPC.qa, `#${proj.id} voltou — ${motivo}`);
+      APP._lastRevisaoMsg = clr(C.yellow, `#${proj.id} "${proj.titulo}" voltou pra desenvolvimento — ${motivo}`);
     }
+    delete proj.revisaoResolveEm;
+    delete proj.revisaoAprovada;
+    delete proj.motivoReprovacao;
+    mudou = true;
   }
 
   if (mudou) {
@@ -319,332 +355,194 @@ function sprintCommand(input, s) {
   // virarem parte literal do nome.
   const rest  = parts.slice(1).join(' ').replace(/^(["'])(.*)\1$/, '$2');
 
-  // nome da sprint e estimativa nao sao o dev que inventa — ja vem
-  // definido no README (quem decide isso e o QA/PM). So atribui o
-  // projeto e copia esses dois campos de la.
-  // Usada tanto por "projeto" (atribuicao manual/automatica) quanto por
-  // "concluir" (que encadeia direto pro proximo projeto da fila) — por
-  // isso fica aqui fora, acessivel aos dois cases.
-  function atribuir(prox) {
-    const jaEstaAtivo = s.projetoAtual === prox.rel;
-    const meta = metaDoProjeto(prox.nivel, prox.pj);
-    s.projetoAtual = prox.rel;
-    if (meta.sprint)          s.sprint = meta.sprint;
-    if (meta.estimativaHoras) s.estimativaHoras = meta.estimativaHoras;
-    if (!jaEstaAtivo) {
-      s.sprintIniciadaEm = new Date().toISOString(); // sprint real, em dias corridos
-      s.prazoDias = prazoSprintPara(prox.nivel, prox.pj);
-      s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.tempoAtivoMs = 0;
-      // reinicia a sprint de verdade: cada projeto novo e como um
-      // repositorio novo na empresa — o backlog/doing/concluido do
-      // projeto anterior nao tem mais o que fazer aqui, entao o board
-      // (e o GitHub simulado, que le as mesmas tasks) volta zerado, com
-      // issues e PRs numerados a partir do 1. Sem isso o board ficava
-      // acumulando tarefas antigas ja entregues e os ids so cresciam
-      // ([6], [7], [8]...).
-      s.tasks = [];
-      s.nextId = 1;
-      s.nextPr = 1;
-      s.ciRuns = [];
-    }
-    s.extensoesQA = 0;
-    APP.ov80 = false;
+  s.projetos = s.projetos || [];
 
-    // o "O que fazer" ja diz o que tem que ser feito — poe direto no
-    // BACKLOG, o dev nao precisa copiar linha por linha do README.
-    // So nao repete se o projeto atribuido e ja estava ativo.
-    // A estimativa do README nao e dividida entre as tarefas — cada
-    // uma recebe o valor CHEIO. Dividir deixaria tarefas de poucos
-    // minutos, o que pressiona demais quem ainda ta aprendendo (1.5h,
-    // 2h ou ate 3h por tarefa e razoavel pra quem ta comecando).
-    let adicionadas = 0;
-    const porTarefa = s.estimativaHoras;
-    if (!jaEstaAtivo && meta.tarefas?.length) {
-      for (const titulo of meta.tarefas) {
-        s.tasks.push({ id: s.nextId++, title: titulo, status: 'backlog', estimativaHoras: porTarefa });
-        adicionadas++;
+  // troca qual projeto esta com o cronometro ligado: acumula o tempo do
+  // que sai (se houver) e liga o do que entra. So um por vez — igual so
+  // da pra codar uma coisa de cada vez na vida real tambem.
+  function ativar(proj) {
+    if (s.projetoAtivoId && s.projetoAtivoId !== proj.id) {
+      const outro = s.projetos.find(pr => pr.id === s.projetoAtivoId);
+      if (outro && s.sessaoIniciadaEm) {
+        const el = Date.now() - new Date(s.sessaoIniciadaEm).getTime();
+        outro.tempoAtivoMs = (outro.tempoAtivoMs||0) + el;
       }
     }
-    saveSprint(s);
-
-    const fraseTarefas = adicionadas > 0
-      ? ` Já deixei ${adicionadas} tarefa(s) no backlog, ${porTarefa}h cada.`
-      : '';
-    pushMessage(NPC.qa, `Próximo da fila pra você: "${prox.pj}". Sprint "${s.sprint}", ${s.prazoDias||15} dias corridos.${fraseTarefas}`);
-    return `${clr(C.green,'>')} Projeto atribuído: ${prox.rel}  ${clr(C.gray,`(${s.sprint}, ${s.prazoDias||15}d)`)}${fraseTarefas ? clr(C.cyan, fraseTarefas) : ''}`;
+    s.projetoAtivoId = proj.id;
+    s.projetoAtual    = proj.rel;
+    s.tempoAtivoMs     = proj.tempoAtivoMs || 0;
+    s.sessaoIniciadaEm  = new Date().toISOString();
+    s.pausadoEm          = null;
   }
 
-  // O estado de UM projeto ativo (backlog, ids, timer, prazo, PRs, Actions...)
-  // vive nesses campos do topo do sprint.json. "outro"/"voltar" trocam de
-  // projeto SEM perder progresso: tira uma foto do que ta no topo agora,
-  // guarda em s.projetoEmEspera, e carrega o outro projeto no lugar. So da
-  // pra ter 2 projetos "em jogo" ao mesmo tempo — o em foco (aqui em cima)
-  // e o que ficou esperando revisao.
-  const SLOT_FIELDS = ['projetoAtual','sprint','estimativaHoras','prazoDias','sprintIniciadaEm',
-    'tarefaAtivaId','sessaoIniciadaEm','tempoAtivoMs','pausadoEm','extensoesQA','nextId','nextPr','ciRuns','tasks'];
-  function tirarSnapshot(alvo) {
-    const slot = {};
-    for (const k of SLOT_FIELDS) slot[k] = alvo[k];
-    return slot;
-  }
-  function aplicarSnapshot(alvo, slot) {
-    for (const k of SLOT_FIELDS) alvo[k] = slot[k];
+  // tira o cronometro do projeto ativo (guarda o tempo dele) sem religar
+  // em nenhum outro — usado quando o projeto ativo vai pra revisao/pausa.
+  function desativar(proj) {
+    if (s.sessaoIniciadaEm) {
+      const el = Date.now() - new Date(s.sessaoIniciadaEm).getTime();
+      proj.tempoAtivoMs = (proj.tempoAtivoMs||0) + el;
+    }
+    if (s.projetoAtivoId === proj.id) {
+      s.projetoAtivoId = null; s.projetoAtual = null;
+      s.tempoAtivoMs = 0;
+    }
+    s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
   }
 
   switch (cmd) {
-    // as tarefas ja vem do README quando "projeto" atribui — nao tem mais
-    // por que o dev cadastrar a mao, entao nao existe mais comando pra isso.
     case 'ver': {
-      const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
-      if (!task) return '  Use: ver <nº> (número da tarefa)';
+      const id = parseInt(rest), proj = s.projetos.find(pr=>pr.id===id);
+      if (!proj) return '  Use: ver <nº> (número do projeto no board)';
       const statusLabel = {
-        backlog: clr(C.gray,'BACKLOG'), doing: clr(C.yellow,'DESENVOLVENDO'),
-        revisao: clr(C.magenta,'EM REVISÃO'), done: clr(C.green,'CONCLUÍDO'),
-      }[task.status] || task.status;
-      return `  #${task.id} [${statusLabel}]  ${task.title}`;
+        backlog: clr(C.gray,'BACKLOG'), doing: clr(C.yellow,'EM ANDAMENTO'),
+        revisao: clr(C.magenta,'EM REVISÃO'), aprovado: clr(C.cyan,'APROVADO — falta concluir'),
+        done: clr(C.green,'CONCLUÍDO'),
+      }[proj.status] || proj.status;
+      return `  #${proj.id} [${statusLabel}]  ${proj.titulo}  ${clr(C.gray, proj.rel)}`;
     }
     case 'start': {
-      const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
-      if (!task) return `  Tarefa #${id} nao encontrada.`;
-      if (task.status==='done')    return `  #${id} ja concluida.`;
-      if (task.status==='revisao') return `  #${id} ta em revisao com o QA. Aguarde.`;
-      if (task.status==='doing')   return `  #${id} ja esta em andamento.`;
+      const id = parseInt(rest), proj = s.projetos.find(pr=>pr.id===id);
+      if (!proj) return `  Projeto #${id} nao encontrado no seu backlog.`;
+      if (proj.status==='done')     return `  #${id} ja concluido.`;
+      if (proj.status==='revisao')  return `  #${id} ta em revisao com o QA. Aguarde.`;
+      if (proj.status==='aprovado') return `  #${id} ja foi aprovado pelo QA — falta concluir: concluir ${id}`;
+      if (proj.status==='doing' && proj.id===s.projetoAtivoId)
+        return `  #${id} ja e o projeto ativo agora.`;
 
-      // uma tarefa de cada vez, na ordem — nao da pra pular pra frente
-      // nem ter duas ativas ao mesmo tempo. So avanca quando a anterior
-      // for finalizada e aprovada pelo QA (status 'done').
-      const outraAtiva = s.tasks.find(t => t.id!==id && ['doing','revisao','aprovado','aceite'].includes(t.status));
-      if (outraAtiva)
-        return clr(C.yellow, `  [QA] Termina a #${outraAtiva.id} antes de começar outra — uma de cada vez.`);
-
-      const pendenteAntes = s.tasks
-        .filter(t => t.id < id && t.status !== 'done')
-        .sort((a,b) => a.id - b.id)[0];
-      if (pendenteAntes)
-        return clr(C.yellow, `  [QA] Segue a ordem do backlog — termina a #${pendenteAntes.id} antes de partir pra #${id}.`);
-
-      task.status = 'doing'; task.startedAt = new Date().toISOString();
-      // o cronometro agora e por tarefa: zera aqui e passa a valer contra
-      // a estimativa dessa tarefa especifica (nao mais o total do projeto).
-      s.tempoAtivoMs = 0; s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
-      s.tarefaAtivaId = id;
+      const eraBacklog = proj.status === 'backlog';
+      proj.status = 'doing';
+      if (eraBacklog) proj.startedAt = new Date().toISOString();
+      ativar(proj);
       saveSprint(s);
       const [n,t] = pick(RESP.start,id); pushMessage(n,t);
-      const est = task.estimativaHoras || s.estimativaHoras;
 
       // gitflow — so verifica a branch atual (leitura), nunca cria/troca nada.
-      // O aviso completo vai pro painel de MENSAGENS (que ja suporta varias
-      // linhas) — a linha de retorno aqui fica curta, de proposito.
-      const esperada = branchEsperadaProjeto(s.projetoAtual);
+      const esperada = branchEsperadaProjeto(proj.rel);
       const atual    = gitBranchAtual();
       let avisoBranch = '';
       if (esperada && atual && atual !== esperada) {
         pushMessage(NPC.lead, `Branch errada pra codar ("${atual}"). Recomendado: git checkout -b ${esperada}`);
         avisoBranch = clr(C.yellow, '  [branch errada — ver MENSAGENS]');
       }
-      return `${clr(C.yellow,'>')} #${id} em andamento.  ${clr(C.gray,`(estimativa: ${est}h)`)}${avisoBranch}`;
-    }
-    // quem finaliza a tarefa agora e o QA, nao o dev — manda pra revisao
-    case 'done': {
-      const id = parseInt(rest);
-      return `  Isso quem decide é o QA agora — manda pra revisão: revisar ${isNaN(id) ? '<nº>' : id}`;
+      return `${clr(C.yellow,'>')} #${id} "${proj.titulo}" em andamento.  ${clr(C.gray,`(estimativa: ${proj.estimativaHoras}h)`)}${avisoBranch}`;
     }
     case 'revisar': {
-      const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
-      if (!task) return `  Tarefa #${id} nao encontrada.`;
-      if (task.status==='backlog')  return `  #${id} nem foi iniciada ainda — use: start ${id}`;
-      if (task.status==='revisao')  return `  #${id} ja esta em revisao. Aguarde o QA.`;
-      if (task.status==='aprovado') return `  #${id} ja foi aprovada pelo QA — falta commitar: commit ${id}`;
-      if (task.status==='aceite')   return `  #${id} ja foi commitada, aguardando aceite da PR.`;
-      if (task.status==='done')     return `  #${id} ja concluida.`;
-      task.status = 'revisao'; task.enviadoRevisaoEm = new Date().toISOString();
+      const id = parseInt(rest), proj = s.projetos.find(pr=>pr.id===id);
+      if (!proj) return `  Projeto #${id} nao encontrado.`;
+      if (proj.status==='backlog')  return `  #${id} nem foi iniciado ainda — use: start ${id}`;
+      if (proj.status==='revisao')  return `  #${id} ja esta em revisao. Aguarde o QA.`;
+      if (proj.status==='aprovado') return `  #${id} ja foi aprovado pelo QA — falta concluir: concluir ${id}`;
+      if (proj.status==='done')     return `  #${id} ja concluido.`;
+
+      // o QA roda o mesmo lint + npm test que "concluir" checa de novo no
+      // final — e assim que ele sabe dizer POR QUE reprovou, em vez de sortear.
+      const projPath = path.join(PROJECTS_DIR, proj.rel);
+      if (!fs.existsSync(path.join(projPath, 'node_modules')))
+        return `  Execute "npm install" na pasta do projeto primeiro — o QA precisa disso pra rodar os testes.`;
+
+      const lintRev  = rodarLint(proj.rel);
+      const testeRev = rodarTestes(proj.rel);
+      const aprovada = !lintRev.bloqueado && testeRev.passou !== false;
+      let motivo = null;
+      if (!aprovada) {
+        if (testeRev.passou === false) motivo = testeRev.motivo || 'Os testes nao passaram.';
+        else if (lintRev.bloqueado)    motivo = `Lint: ${lintRev.erros} erro(s) (ex.: ${lintRev.exemplo})`;
+      }
+
+      proj.status = 'revisao'; proj.enviadoRevisaoEm = new Date().toISOString();
       // vira uma PR simulada na primeira vez que sai do backlog pra revisao —
       // se voltar (reprovada) e for de novo, e a mesma PR, so reaberta.
-      if (!task.prNumero) { task.prNumero = s.nextPr++; task.prBranch = branchEsperadaProjeto(s.projetoAtual); }
-      // resolucao decidida e marcada por DATA (nao setTimeout) — sobrevive
-      // a fechar o simulador antes da hora, veja checkRevisoesQA().
-      const delayMs = 8000 + Math.random() * 12000;
-      task.revisaoResolveEm = new Date(Date.now() + delayMs).toISOString();
-      task.revisaoAprovada  = Math.random() < 0.7;
-      // o dev para de codar enquanto espera — pausa o relogio da sprint
-      if (s.sessaoIniciadaEm) {
-        const el = Date.now() - new Date(s.sessaoIniciadaEm).getTime();
-        s.tempoAtivoMs = (s.tempoAtivoMs||0) + el;
-        s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
-      }
+      if (!proj.prNumero) { s.nextPr = s.nextPr || 1; proj.prNumero = s.nextPr++; proj.prBranch = branchEsperadaProjeto(proj.rel); }
+      // resultado (aprovada/motivo) ja foi decidido de verdade acima — o
+      // delay e so o "tempo que o QA leva pra olhar", que agora pode ser
+      // bem real (minutos a dias), nao sorteio de segundos.
+      proj.revisaoResolveEm = new Date(Date.now() + delayRevisaoMs()).toISOString();
+      proj.revisaoAprovada  = aprovada;
+      proj.motivoReprovacao = motivo;
+      // o projeto sai de "ativo" enquanto espera — o dev fica livre pra
+      // dar start em outro do backlog sem perder o progresso deste.
+      desativar(proj);
       saveSprint(s);
       const [n,t] = pick(RESP.revisar,id); pushMessage(n,t);
-      return `${clr(C.magenta,'⏳')} #${id} enviada pra revisão do QA. Timer pausado até ele responder.`;
+      return `${clr(C.magenta,'⏳')} #${id} "${proj.titulo}" enviado pra revisão do QA — pode levar minutos, horas ou dias. Comece outro do backlog enquanto espera.`;
     }
-    // igual o resto do GitHub simulado (issues, PRs, Actions sao tudo
-    // numero/estado inventado pelo jogo) — o commit tambem e simulado aqui,
-    // nao depende de um repositorio git de verdade nem de internet pra
-    // funcionar. Commitar de verdade no seu repo continua sendo o certo a
-    // fazer, so que o jogo nao fica checando isso.
+    // commit agora e so uma coisa: salvar o jogo. Nao depende mais de
+    // nenhum projeto estar aprovado nem trava a entrega — e o unico ponto
+    // que grava em disco (ver persistirJogo() em core/dados.js). Sem
+    // commit, nada do que mudou e salvo; o jogador escolhe a hora.
     case 'commit': {
-      const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
-      if (!task) return `  Tarefa #${id} nao encontrada.`;
-      if (task.status==='backlog' || task.status==='doing')
-        return `  #${id} ainda nao foi pra revisão do QA — use: revisar ${id}`;
-      if (task.status==='revisao')
-        return `  #${id} ainda esta em revisao com o QA. Aguarde a aprovação antes de commitar.`;
-      if (task.status==='aceite')
-        return `  #${id} ja foi commitada, aguardando aceite da PR.`;
-      if (task.status==='done')
-        return `  #${id} ja concluida.`;
-      if (task.status!=='aprovado')
-        return `  #${id} ainda nao foi aprovada pelo QA.`;
-
-      task.status = 'aceite';
-      task.commitHash = hashCommitFalso();
-      task.commitadoEm = new Date().toISOString();
-      // resolucao por DATA (nao setTimeout) — mesmo padrao da revisao do QA,
-      // sobrevive a fechar o simulador antes da hora.
-      const delayMs = 5000 + Math.random() * 10000;
-      task.aceiteResolveEm = new Date(Date.now() + delayMs).toISOString();
-      saveSprint(s);
-      const [n,t] = pick(RESP.commitado,id); pushMessage(n,t);
-      return `${clr(C.cyan,'⏳')} Commit ${clr(C.yellow,task.commitHash)} registrado — PR da #${id} enviada pra aceite.`;
-    }
-    case 'rm': {
-      const id = parseInt(rest), idx = s.tasks.findIndex(t=>t.id===id);
-      if (idx===-1) return `  Tarefa #${id} nao encontrada.`;
-      s.tasks.splice(idx,1); saveSprint(s);
-      return `  #${id} removida.`;
+      const mensagem = rest.trim();
+      if (!mensagem) return `  Uso: commit <mensagem>  (ex.: commit terminei a validação de idade)`;
+      persistirJogo();
+      return `${clr(C.green,'✔')} Jogo salvo.  ${clr(C.gray,'"'+mensagem+'"')}`;
     }
     case 'pausar': {
-      if (!s.sessaoIniciadaEm) return '  Sprint ja pausada.';
-      const el = Date.now() - new Date(s.sessaoIniciadaEm).getTime();
-      s.tempoAtivoMs = (s.tempoAtivoMs||0) + el;
-      s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
+      if (!s.sessaoIniciadaEm) return '  Nenhum projeto ativo pra pausar.';
+      const proj = s.projetos.find(pr => pr.id === s.projetoAtivoId);
+      if (proj) desativar(proj); else { s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString(); }
       saveSprint(s);
       const [n,t] = pick(RESP.pausar); pushMessage(n,t);
-      return `${clr(C.yellow,'⏸')} Pausado. Tempo salvo: ${fmtMs(s.tempoAtivoMs)}`;
+      return `${clr(C.yellow,'⏸')} Pausado.`;
     }
     case 'retomar': {
       if (s.sessaoIniciadaEm) return '  Sprint ja ativa.';
-      s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
+      const proj = s.projetos.find(pr => pr.id === s.projetoAtivoId);
+      if (!proj) return '  Nenhum projeto ativo pra retomar — use "start <nº>".';
+      ativar(proj);
       saveSprint(s);
       const [n,t] = pick(RESP.retomar); pushMessage(n,t);
-      return `${clr(C.green,'▶')} Sprint retomada.`;
-    }
-    case 'inicio': {
-      if (s.sessaoIniciadaEm) { const el=Date.now()-new Date(s.sessaoIniciadaEm).getTime(); s.tempoAtivoMs=(s.tempoAtivoMs||0)+el; }
-      s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
-      saveSprint(s); return `${clr(C.green,'▶')} Timer iniciado.`;
-    }
-    case 'projeto': {
-      const p  = loadProgress();
-      const lv = getLevel(p.xp).lv;
-
-      // sem argumento: pega o proximo da fila do seu nivel (o normal do dia a dia)
-      if (!rest) {
-        const prox = proximoProjetoNivel();
-        if (!prox) return clr(C.green, `  [QA] Você já entregou tudo do nível ${lv.name}. Aguarde a próxima leva.`);
-        return atribuir(prox);
-      }
-
-      // com argumento: so aceita se for do seu proprio nivel — o dev nao escolhe
-      // livremente entre pastas de outras senioridades.
-      const pp = path.join(PROJECTS_DIR, rest);
-      if (!fs.existsSync(pp)) return `  Pasta nao encontrada: projects/${rest}`;
-      const nivelDoProjeto = rest.split('/')[0];
-      if (nivelDoProjeto !== lv.folder)
-        return clr(C.yellow, `  [QA] Isso não é da sua sprint — é nível ${nivelDoProjeto}, você tá em ${lv.name}. Digite "projeto" sem nada pra ver o que é seu.`);
-      const pjNome = rest.split('/').slice(1).join('/');
-      return atribuir({ nivel: nivelDoProjeto, pj: pjNome, rel: rest });
-    }
-    // enquanto uma tarefa espera o QA, o dev nao fica parado — pega outro
-    // projeto da fila pra adiantar, sem perder o progresso do que ficou
-    // esperando (max 2 "em jogo": o em foco e o parado em revisao).
-    case 'outro': {
-      if (!s.projetoAtual) return '  Nenhum projeto ativo.';
-      if (s.projetoEmEspera)
-        return clr(C.yellow, `  Já tem "${s.projetoEmEspera.projetoAtual}" esperando. Usa "voltar" antes de pegar mais um.`);
-      if (!s.tasks.some(t => ['revisao','aprovado','aceite'].includes(t.status)))
-        return clr(C.yellow, '  [QA] Nada esperando revisão, commit ou aceite agora — não faz sentido largar o projeto no meio. Manda alguma tarefa pra "revisar" primeiro.');
-      if (s.tasks.some(t => t.status === 'doing'))
-        return clr(C.yellow, '  Termina ou manda pra revisão a tarefa em andamento antes de trocar de projeto.');
-      const prox = proximoProjetoNivel([s.projetoAtual]);
-      if (!prox) return clr(C.green, '  [QA] Não tem outro projeto disponível no seu nível agora.');
-      const parado = s.projetoAtual;
-      s.projetoEmEspera = tirarSnapshot(s);
-      const msg = atribuir(prox); // troca o topo pro projeto novo e ja salva
-      pushMessage(NPC.pm, `Beleza, foca no "${prox.pj}" enquanto o QA olha o "${parado}". Depois é só "voltar".`);
-      return `${clr(C.cyan,'⇄')} "${parado}" fica esperando revisão.  ${msg}`;
-    }
-    case 'voltar': {
-      if (!s.projetoEmEspera) return '  Nenhum projeto esperando pra voltar.';
-      const atual = tirarSnapshot(s);
-      aplicarSnapshot(s, s.projetoEmEspera);
-      s.projetoEmEspera = atual;
-      saveSprint(s);
-      pushMessage(NPC.qa, `Bom te ver de volta no "${s.projetoAtual}". Vamos que vamos.`);
-      return `${clr(C.cyan,'⇄')} De volta ao projeto "${s.projetoAtual}".  ${clr(C.gray,`("${s.projetoEmEspera.projetoAtual}" fica esperando)`)}`;
+      return `${clr(C.green,'▶')} "${proj.titulo}" retomado.`;
     }
     case 'concluir': {
-      if (!s.projetoAtual) return '  Nenhum projeto ativo.';
-      const marker = path.join(PROJECTS_DIR, s.projetoAtual, '.concluido');
-      if (fs.existsSync(marker)) return '  Projeto ja entregue.';
-      // so entrega o projeto com o backlog inteiro finalizado e aprovado —
-      // a "revisao" do projeto todo pressupoe que cada item ja passou pela dele.
-      const pendentes = s.tasks.filter(t => t.status !== 'done');
-      if (pendentes.length > 0) {
-        const exemplo = pendentes[0];
-        return clr(C.yellow, `  [QA] Ainda tem ${pendentes.length} tarefa(s) pendente(s) (ex.: #${exemplo.id}). Termina e aprova tudo antes de entregar.`);
-      }
-      const projPath = path.join(PROJECTS_DIR, s.projetoAtual);
-      if (!fs.existsSync(path.join(projPath, 'node_modules')))
-        return `  Execute "npm install" na pasta do projeto primeiro.`;
+      const id = parseInt(rest), proj = s.projetos.find(pr=>pr.id===id);
+      if (!proj) return `  Uso: concluir <nº>  (o nº aparece em EM REVISÃO depois de aprovado)`;
+      if (proj.status==='done')     return '  Projeto ja entregue.';
+      if (proj.status!=='aprovado') return clr(C.yellow, `  [QA] #${id} ainda nao foi aprovado. Manda pra revisão primeiro: revisar ${id}`);
 
-      // pipeline de CI de verdade: lint primeiro (mais rapido, pega bug
-      // bobo cedo), testes depois — igual a maioria dos workflows reais.
-      const lint = rodarLint(s.projetoAtual);
-      const res  = spawnSync('npm', ['test','--','--silent'], { cwd: projPath, encoding:'utf8', stdio:'pipe' });
-      const testesOk = res.status === 0;
-      const passou   = testesOk && !lint.bloqueado;
+      const marker = path.join(PROJECTS_DIR, proj.rel, '.concluido');
+      if (fs.existsSync(marker)) { proj.status = 'done'; return '  Projeto ja entregue.'; }
 
-      // registra a Action (CI) rodada, passe ou falhe — igual um workflow
-      // de verdade que roda a cada tentativa de entrega.
+      // ultima confirmacao real (lint + npm test), igual um pipeline de CI
+      // rodando antes do merge — a revisao ja aprovou, isso so fecha as contas.
+      const lint = rodarLint(proj.rel);
+      const teste = rodarTestes(proj.rel);
+      const passou = teste.passou !== false && !lint.bloqueado;
+
       s.ciRuns = s.ciRuns || [];
       s.ciRuns.push({
-        numero: s.ciRuns.length + 1,
-        quando: new Date().toISOString(),
-        projeto: s.projetoAtual,
-        sucesso: passou,
-        testesOk, lintErros: lint.erros, lintAvisos: lint.avisos,
+        numero: s.ciRuns.length + 1, quando: new Date().toISOString(), projeto: proj.rel,
+        sucesso: passou, testesOk: teste.passou !== false, lintErros: lint.erros, lintAvisos: lint.avisos,
       });
       if (s.ciRuns.length > 30) s.ciRuns = s.ciRuns.slice(-30);
-      saveSprint(s);
 
-      if (lint.bloqueado) {
-        pushMessage(NPC.lead, `Lint encontrou ${lint.erros} erro(s) de verdade (ex.: ${lint.exemplo}). Corrige antes de mandar pra QA.`);
-        return clr(C.red, `  [LEAD] Bloqueado: lint com ${lint.erros} erro(s). Rode "npx eslint projects/${s.projetoAtual}" na raiz do repositório.`);
+      if (!passou) {
+        saveSprint(s);
+        pushMessage(NPC.qa, 'Entrega bloqueada — algo quebrou desde a revisão. Corrige antes de entregar.');
+        return clr(C.red, '  [QA] Bloqueado: algo nao passa mais (lint ou teste). Roda "revisar '+id+'" de novo depois de corrigir.');
       }
-      if (!testesOk) {
-        pushMessage(NPC.qa, 'Entrega bloqueada — testes falhando. Corrige antes de entregar.');
-        return clr(C.red,'  [QA] Bloqueado: testes nao passaram. Rode "npm test" no projeto.');
-      }
-      if (lint.avisos > 0) {
-        pushMessage(NPC.lead, `Lint passou sem erro, mas achei ${lint.avisos} aviso(s) de estilo. Dá uma olhada quando puder — não travou a entrega.`);
-      }
-      // As penalidades de atraso ja foram aplicadas ao vivo (checkOvertime,
-      // toda vez que o QA precisou reestimar) — aqui so fecha as contas.
+
+      proj.status = 'done'; proj.completedAt = new Date().toISOString();
+      proj.tempoGastoMs = proj.tempoAtivoMs || 0;
+      // XP escala com o tamanho do projeto (numero de tarefas do README) —
+      // um projeto maior vale mais do que um mini-projeto de 1 topico.
+      const meta = metaDoProjeto(proj.nivel, proj.pj);
+      const xpGanho = Math.max(25, (meta.tarefas?.length || 1) * 25);
       const p2 = loadProgress();
       let penMsg = '';
-      if (s.extensoesQA > 0) {
+      p2.xp += xpGanho;
+      if (proj.extensoesQA > 0) {
         p2.atrasadas = (p2.atrasadas || 0) + 1;
-        penMsg = clr(C.yellow, ` (entregue com ${s.extensoesQA} reestimativa(s) no caminho)`);
+        penMsg = clr(C.yellow, ` (entregue com ${proj.extensoesQA} reestimativa(s) no caminho)`);
         pushMessage(NPC.pm, 'Projeto entregue, mas com reestimativas no meio do caminho. Vamos calibrar melhor a proxima.');
       }
       saveProgress(p2);
       fs.writeFileSync(marker, new Date().toISOString());
-      pushMessage(NPC.qa,   'Suite completa passou. Aprovado!');
-      pushMessage(NPC.lead, `Entregue! Otimo trabalho, ${p2.name}.`);
+      pushMessage(NPC.qa,   `Suite completa passou. Aprovado! +${xpGanho} XP`);
+      pushMessage(NPC.lead, `#${id} "${proj.titulo}" entregue! Otimo trabalho, ${p2.name}.`);
 
       // gitflow — so avisa (leitura), nao mexe em nada. O merge de verdade
       // (feature -> develop) e sempre manual, feito pelo aluno.
-      const esperada = branchEsperadaProjeto(s.projetoAtual);
+      const esperada = branchEsperadaProjeto(proj.rel);
       const atual    = gitBranchAtual();
       if (esperada && atual === esperada) {
         pushMessage(NPC.lead, `Testes ok e entregue — agora faz o merge: git checkout develop && git merge ${esperada}`);
@@ -652,115 +550,112 @@ function sprintCommand(input, s) {
         pushMessage(NPC.lead, `Confere se commitou tudo em "${atual}" antes de mergear em develop.`);
       }
 
-      // a sprint nao fica parada esperando o dev pedir "projeto" de novo.
-      // Se tinha outro projeto esperando (trocou com "outro" pra nao ficar
-      // parado esperando revisao), volta pra ele em vez de puxar um 3º —
-      // so busca um novo da fila quando nao tem nenhum em espera.
-      let proxMsg;
-      if (s.projetoEmEspera) {
-        const parado = s.projetoEmEspera.projetoAtual;
-        aplicarSnapshot(s, s.projetoEmEspera);
-        s.projetoEmEspera = null;
-        saveSprint(s);
-        pushMessage(NPC.pm, `Entrega registrada! Voltando pro "${parado}" que tava esperando revisão.`);
-        proxMsg = clr(C.gray, `  Voltando pro projeto que esperava: ${s.projetoAtual}.`);
-      } else {
-        const prox = proximoProjetoNivel();
-        if (prox) {
-          pushMessage(NPC.pm, 'Entrega registrada. Já coloquei o próximo projeto na sua sprint.');
-          atribuir(prox); // reinicia backlog/ids/timer e ja preenche o proximo projeto — o "> Projeto atribuido..." vai so pro painel de mensagens, a linha de retorno fica curta
-          proxMsg = clr(C.gray, `  Nova sprint iniciada: ${s.sprint}.`);
+      // so busca lote novo quando o ultimo do lote atual foi entregue —
+      // se ainda tem outro projeto aberto no board, fica por isso mesmo.
+      let proxMsg = '';
+      const loteVazio = !s.projetos.some(pr => pr.status !== 'done');
+      if (loteVazio) {
+        if (garantirLote(s)) {
+          proxMsg = clr(C.gray, `  Sprint ${s.sprintNum} liberada com novo(s) projeto(s).`);
         } else {
-          pushMessage(NPC.pm, 'Entrega registrada. Foi o último projeto do seu nível — aguarde a próxima leva.');
-          proxMsg = clr(C.green, `  [QA] Nível concluído! Aguarde novos projetos.`);
+          pushMessage(NPC.pm, 'Entrega registrada. Foi o último projeto disponível por enquanto — aguarde a próxima leva.');
+          proxMsg = clr(C.green, '  [QA] Nada mais liberado no momento. Aguarde novos projetos.');
         }
       }
+
+      saveSprint(s);
 
       // a cada N projetos entregues, interrompe com um 1:1 de performance
       // do Lead antes do menu — mesmo criterio de interstiço do standup.
       if (precisaRevisao1a1(contarProjetos().concluidos)) goTo('revisao1a1');
 
-      return clr(C.green,'★ ENTREGUE! ') + proxMsg + penMsg;
+      // entrega de projeto e um marco por si so (o .concluido ja foi pro
+      // disco acima) — salva o resto do estado junto pra nao ficar
+      // inconsistente (projeto marcado como entregue mas XP so em memoria).
+      persistirJogo();
+      return clr(C.green,`★ ENTREGUE! +${xpGanho} XP`) + proxMsg + penMsg + clr(C.green,'  ✔ jogo salvo');
     }
     case '': case undefined: return null;
     default: return `  Comando desconhecido: "${cmd}"`;
   }
 }
 
-// Quando a sprint estoura, o dev nao reestima sozinho — o QA negocia mais
-// tempo com o PM. Mas isso nao e de graca: cada reestimativa vira um aviso
-// de desempenho registrado na hora (nao só na entrega), com XP cada vez
-// maior perdido se acontecer de novo na mesma sprint.
-// O tempo estourado agora e por TAREFA (o QA te passa uma coisa de cada
-// vez, cada uma com seu prazo) — nao mais o total do projeto. O prazo do
-// projeto inteiro (calendario, 15 dias) e outra coisa, ver checkPrazoSprint.
+// Quando o tempo de um projeto estoura, o dev nao reestima sozinho — o QA
+// negocia mais tempo com o PM. Mas isso nao e de graca: cada reestimativa
+// vira um aviso de desempenho registrado na hora (nao só na entrega), com
+// XP cada vez maior perdido se acontecer de novo. So mede o projeto ATIVO
+// (o unico com cronometro rodando).
 function checkOvertime() {
   const s = loadSprint();
-  if (!s || !s.sessaoIniciadaEm || !s.tarefaAtivaId) return;
-  const tarefa = s.tasks.find(t => t.id === s.tarefaAtivaId && t.status === 'doing');
-  if (!tarefa) return;
+  if (!s || !s.sessaoIniciadaEm || !s.projetoAtivoId) return;
+  const proj = (s.projetos||[]).find(pr => pr.id === s.projetoAtivoId && pr.status === 'doing');
+  if (!proj) return;
 
-  const estimativa = tarefa.estimativaHoras || s.estimativaHoras;
+  const estimativa = proj.estimativaHoras || 2;
   const ativo = tempoAtivoTotal(s);
   const estMs = estimativa * 3600000;
   const pct   = ativo / estMs;
 
   if (pct >= 0.8 && !APP.ov80) {
     APP.ov80 = true;
-    pushMessage(NPC.pm, `Atencao! Tarefa #${tarefa.id} chegando no limite do tempo. Quanto falta?`);
-    if (APP.screen === 'sprint') APP.lastFb = clr(C.yellow,`⚡ #${tarefa.id}: 80% do tempo estimado usado. Foco!`);
+    pushMessage(NPC.pm, `Atencao! #${proj.id} chegando no limite do tempo. Quanto falta?`);
+    if (APP.screen === 'sprint') APP.lastFb = clr(C.yellow,`⚡ #${proj.id}: 80% do tempo estimado usado. Foco!`);
   }
 
   if (pct >= 1.0) {
     const extensao = Math.max(0.25, +(estimativa * 0.5).toFixed(2));
-    s.extensoesQA = (s.extensoesQA || 0) + 1;
-    tarefa.estimativaHoras = +(estimativa + extensao).toFixed(2);
+    proj.extensoesQA = (proj.extensoesQA || 0) + 1;
+    proj.estimativaHoras = +(estimativa + extensao).toFixed(2);
     saveSprint(s);
 
-    const penalidade = 5 * s.extensoesQA; // -5, -10, -15... escalando por sprint
+    const penalidade = 5 * proj.extensoesQA; // -5, -10, -15... escalando por projeto
     const p = loadProgress();
     p.xp     = Math.max(0, p.xp - penalidade);
     p.avisos = (p.avisos || 0) + 1;
     saveProgress(p);
 
-    pushMessage(NPC.qa, `Tarefa #${tarefa.id} estourou o tempo. Consegui +${extensao}h com o PM, mas isso vira aviso no seu histórico.`);
-    pushMessage(NPC.lead, s.extensoesQA > 1
-      ? `Essa já é a ${s.extensoesQA}ª reestimativa dessa sprint. Precisamos conversar sobre planejamento.`
-      : 'Uma tarefa estourou o tempo. Da próxima vez avisa antes de chegar no limite.');
+    pushMessage(NPC.qa, `#${proj.id} estourou o tempo. Consegui +${extensao}h com o PM, mas isso vira aviso no seu histórico.`);
+    pushMessage(NPC.lead, proj.extensoesQA > 1
+      ? `Essa já é a ${proj.extensoesQA}ª reestimativa desse projeto. Precisamos conversar sobre planejamento.`
+      : 'Um projeto estourou o tempo. Da próxima vez avisa antes de chegar no limite.');
     if (APP.screen === 'sprint')
-      APP.lastFb = clr(C.red, `⚠ #${tarefa.id} estourou — QA deu +${extensao}h  (aviso registrado, -${penalidade} XP)`);
+      APP.lastFb = clr(C.red, `⚠ #${proj.id} estourou — QA deu +${extensao}h  (aviso registrado, -${penalidade} XP)`);
 
     APP.ov80 = false; // reseta pra poder alertar de novo dentro do novo prazo
   }
 }
 
-// Simulador vivo: a sprint corre em dias corridos de verdade (15 dias),
-// mesmo com o app fechado — nao e so tempo ativo de codigo. Se o prazo
-// bater, o QA renegocia com o PM, mas isso soma no mesmo contador de
-// avisos/XP que o estouro de horas (as duas coisas pesam junto).
+// Simulador vivo: cada projeto corre em dias corridos de verdade (a partir
+// de quando entrou no backlog), mesmo com o app fechado. Se o prazo bater
+// antes de terminado (nao 'done'), o QA renegocia com o PM — mesmo
+// contador de avisos/XP que o estouro de horas.
 function checkPrazoSprint() {
   const s = loadSprint();
-  if (!s || !s.projetoAtual || !s.sprintIniciadaEm) return;
+  if (!s) return;
+  let mudou = false;
+  for (const proj of (s.projetos||[])) {
+    if (proj.status === 'done' || !proj.atribuidoEm) continue;
+    const prazo     = proj.prazoDias || 15;
+    const decorrido = Math.floor((Date.now() - new Date(proj.atribuidoEm).getTime()) / 86400000);
+    if (decorrido < prazo) continue;
 
-  const prazo    = s.prazoDias || 15;
-  const decorrido = Math.floor((Date.now() - new Date(s.sprintIniciadaEm).getTime()) / 86400000);
-  if (decorrido < prazo) return;
+    const extensaoDias = 7;
+    proj.prazoDias = prazo + extensaoDias;
+    proj.extensoesQA = (proj.extensoesQA || 0) + 1;
+    mudou = true;
 
-  const extensaoDias = 7;
-  s.prazoDias = prazo + extensaoDias;
-  s.extensoesQA = (s.extensoesQA || 0) + 1;
-  saveSprint(s);
+    const penalidade = 5 * proj.extensoesQA;
+    const p = loadProgress();
+    p.xp     = Math.max(0, p.xp - penalidade);
+    p.avisos = (p.avisos || 0) + 1;
+    saveProgress(p);
 
-  const penalidade = 5 * s.extensoesQA;
-  const p = loadProgress();
-  p.xp     = Math.max(0, p.xp - penalidade);
-  p.avisos = (p.avisos || 0) + 1;
-  saveProgress(p);
-
-  pushMessage(NPC.pm, `Os ${prazo} dias da sprint bateram. Consegui +${extensaoDias} dias com o cliente, mas isso vira aviso.`);
-  pushMessage(NPC.qa, 'Nao da pra esticar prazo pra sempre — precisamos fechar isso logo.');
-  if (APP.screen === 'sprint')
-    APP.lastFb = clr(C.red, `⚠ Prazo de ${prazo} dias estourou — QA conseguiu +${extensaoDias}d  (aviso registrado, -${penalidade} XP)`);
+    pushMessage(NPC.pm, `Os ${prazo} dias do #${proj.id} bateram. Consegui +${extensaoDias} dias com o cliente, mas isso vira aviso.`);
+    pushMessage(NPC.qa, 'Nao da pra esticar prazo pra sempre — precisamos fechar isso logo.');
+    if (APP.screen === 'sprint')
+      APP.lastFb = clr(C.red, `⚠ Prazo do #${proj.id} estourou — QA conseguiu +${extensaoDias}d  (aviso registrado, -${penalidade} XP)`);
+  }
+  if (mudou) saveSprint(s);
 }
 
 function handleSprintKey(key) {

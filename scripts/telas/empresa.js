@@ -15,8 +15,8 @@ function buildEmpresa() {
   const sprintProj    = s?.projetoAtual ? `projects/${s.projetoAtual}` : '—';
   const pausado       = s ? !s.sessaoIniciadaEm : true;
   const statusSprint  = pausado ? clr(C.yellow,'PAUSADA') : clr(C.green,'ATIVO');
-  const done = s?.tasks?.filter(t=>t.status==='done').length||0;
-  const tot  = s?.tasks?.length||0;
+  const done = s?.projetos?.filter(pr=>pr.status==='done').length||0;
+  const tot  = s?.projetos?.length||0;
 
   let o = C.cls + C.hide;
   o += `╔${LINE}╗\n`;
@@ -38,7 +38,7 @@ function buildEmpresa() {
     o += row(` ${bold(sprintNome)}  [${statusSprint}]`) + '\n';
     o += row(` ${clr(C.gray,'Projeto:')} ${sprintProj}`) + '\n';
     o += row(` ${timerLine(s)}`) + '\n';
-    o += row(` ${clr(C.gray,'Tarefas:')} ${clr(C.green,String(done))}/${tot} concluidas`) + '\n';
+    o += row(` ${clr(C.gray,'Projetos:')} ${clr(C.green,String(done))}/${tot} concluidos (lote atual)`) + '\n';
   } else {
     o += row(clr(C.gray,' Nenhuma sprint ativa. Acesse "Painel de Sprint" para iniciar.')) + '\n';
     o += row('') + '\n'; o += row('') + '\n'; o += row('') + '\n';
