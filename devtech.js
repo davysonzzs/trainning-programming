@@ -1160,12 +1160,17 @@ function sprintCommand(input, s) {
       s.sprintIniciadaEm = new Date().toISOString(); // sprint real, em dias corridos
       s.prazoDias = prazoSprintPara(prox.nivel, prox.pj);
       s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.tempoAtivoMs = 0;
-      // reinicia a sprint de verdade: o backlog/doing/concluido do projeto
-      // anterior nao tem mais o que fazer aqui, e a numeracao das tarefas
-      // volta a comecar do 1 — sem isso o board ficava acumulando tarefas
-      // antigas ja entregues e os ids so cresciam ([6], [7], [8]...).
+      // reinicia a sprint de verdade: cada projeto novo e como um
+      // repositorio novo na empresa — o backlog/doing/concluido do
+      // projeto anterior nao tem mais o que fazer aqui, entao o board
+      // (e o GitHub simulado, que le as mesmas tasks) volta zerado, com
+      // issues e PRs numerados a partir do 1. Sem isso o board ficava
+      // acumulando tarefas antigas ja entregues e os ids so cresciam
+      // ([6], [7], [8]...).
       s.tasks = [];
       s.nextId = 1;
+      s.nextPr = 1;
+      s.ciRuns = [];
     }
     s.extensoesQA = 0;
     APP.ov80 = false;
