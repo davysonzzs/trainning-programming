@@ -183,7 +183,7 @@ function loadSprint() {
     const init = { sprint: 'Sprint 1', nextId: 1, tasks: [], tempoAtivoMs: 0,
       sessaoIniciadaEm: null, pausadoEm: null, estimativaHoras: 2, projetoAtual: null,
       extensoesQA: 0, sprintIniciadaEm: null, prazoDias: 15, tarefaAtivaId: null,
-      nextPr: 1, ciRuns: [] };
+      nextPr: 1, ciRuns: [], projetoEmEspera: null };
     fs.writeFileSync(SPRINT_FILE, JSON.stringify(init, null, 2));
     return init;
   }
@@ -200,6 +200,9 @@ function loadSprint() {
     if (!('tarefaAtivaId'    in d)) d.tarefaAtivaId    = null;
     if (!('nextPr'           in d)) d.nextPr           = 1;
     if (!('ciRuns'           in d)) d.ciRuns           = [];
+    // projeto "parado" esperando revisao enquanto o dev troca pra outro
+    // (comando "outro"/"voltar") — null quando so tem 1 projeto em jogo.
+    if (!('projetoEmEspera'  in d)) d.projetoEmEspera  = null;
     return d;
   } catch { return null; }
 }
@@ -531,7 +534,8 @@ function buildSprint(s) {
   let o = C.cls + C.hide;
   o += `╔${LINE}╗\n`;
   o += row(` ${bold('DEVTECH SISTEMAS S.A.')}  ${' '.repeat(26)}Dev: ${bold(p.name)}  XP: ${clr(C.cyan,String(p.xp))}`) + '\n';
-  o += row(` Sprint: ${bold(s.sprint)}${pausado ? '  '+clr(C.yellow,'[PAUSADO]') : ''}  ${s.projetoAtual ? clr(C.gray,'  proj: '+s.projetoAtual) : ''}`) + '\n';
+  const espera = s.projetoEmEspera ? clr(C.yellow, `  ⏳ esperando: ${s.projetoEmEspera.projetoAtual}`) : '';
+  o += row(` Sprint: ${bold(s.sprint)}${pausado ? '  '+clr(C.yellow,'[PAUSADO]') : ''}  ${s.projetoAtual ? clr(C.gray,'  proj: '+s.projetoAtual) : ''}${espera}`) + '\n';
   if (diasRestantes !== null) {
     const cor = diasRestantes <= 2 ? C.red : diasRestantes <= 5 ? C.yellow : C.green;
     const ext = s.extensoesQA > 0 ? clr(C.gray, `  (${s.extensoesQA} reestimativa(s))`) : '';
@@ -571,8 +575,12 @@ function buildSprint(s) {
     o += linhaMsg(aMsg[0].tag, aMsg[1]) + '\n';
   }
   o += `╠${LINE}╣\n`;
+  if (devEstaBloqueado(s)) {
+    o += row(clr(C.cyan, '  💡 QA segurando tudo — sem nada pra iniciar agora. Boa hora pra estudar: tecla [5] Trilha de Estudos.')) + '\n';
+    o += `╠${LINE}╣\n`;
+  }
   if (APP.lastFb) o += row(` ${APP.lastFb}`) + '\n', o += `╠${LINE}╣\n`;
-  o += row(dim('  projeto  (pega o próximo da sua fila)')) + '\n';
+  o += row(dim('  projeto  (pega o próximo da sua fila)   outro / voltar  (troca sem perder progresso)')) + '\n';
   o += row(dim('  ver/start/revisar/rm <nº>   pausar   retomar   concluir')) + '\n';
   o += `╠${LINE}╣\n`;
   o += row(` ${clr(C.cyan,'>')} ${APP.inputBuf}${clr(C.gray,'█')}`) + '\n';
@@ -942,8 +950,18 @@ function actionsDoProjeto(s) {
     const estado = run.sucesso ? 'success' : 'failure';
     const quando = new Date(run.quando).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
     const numero = `#${run.numero}`.padEnd(4);
-    const proj   = (run.projeto || '—').padEnd(38);
-    return `  ${clr(cor,icon)} run ${clr(C.gray,numero)} ${clr(C.gray,quando)}  ${proj} ${clr(cor,estado)}`;
+    const proj   = (run.projeto || '—').padEnd(30);
+    // Jobs do pipeline: lint (bloqueia so com erro) e test — igual um
+    // workflow real com mais de um step por run.
+    let jobs = '';
+    if (run.lintErros !== undefined) {
+      const lintOk = run.lintErros === 0;
+      const lintCor = lintOk ? C.green : C.red;
+      const lintTxt = `lint:${lintOk ? '✓' : '✗'+run.lintErros}${run.lintAvisos ? '('+run.lintAvisos+'w)' : ''}`;
+      const testCor = run.testesOk ? C.green : C.red;
+      jobs = ` ${clr(lintCor, lintTxt)} ${clr(testCor, `test:${run.testesOk ? '✓' : '✗'}`)}`;
+    }
+    return `  ${clr(cor,icon)} run ${clr(C.gray,numero)} ${clr(C.gray,quando)}  ${proj}${jobs} ${clr(cor,estado)}`;
   });
 }
 
@@ -1040,6 +1058,34 @@ function pick(arr, ...args) {
 //  os comandos de git e sempre o aluno.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  LINT — ESLint de verdade, config compartilhada na raiz (eslint.config.js)
+//  pra nao precisar instalar em cada um dos 30+ projetos. So bloqueia em
+//  ERRO de verdade (variavel indefinida, codigo morto...); aviso (variavel
+//  nao usada, == em vez de ===) nao trava a entrega, so vira comentario.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function rodarLint(projetoRel) {
+  const alvo = path.join(PROJECTS_DIR, projetoRel);
+  const res  = spawnSync('npx', ['eslint', alvo, '--format', 'json'], { cwd: ROOT, encoding: 'utf8' });
+  let resultados;
+  try { resultados = JSON.parse(res.stdout); }
+  catch {
+    // "nenhum arquivo pra lintar" (projeto ainda sem nenhum .js proprio) ou
+    // erro de infra do ESLint — nao e bug do aluno, o npm test ja teria
+    // barrado antes disso. Nao bloqueia por essa via.
+    return { rodou: false, bloqueado: false, erros: 0, avisos: 0 };
+  }
+  let erros = 0, avisos = 0, exemplo = null;
+  for (const arq of resultados) {
+    for (const msg of arq.messages) {
+      if (msg.severity === 2) { erros++; if (!exemplo) exemplo = `${msg.ruleId} (linha ${msg.line}): ${msg.message}`; }
+      else avisos++;
+    }
+  }
+  return { rodou: true, bloqueado: erros > 0, erros, avisos, exemplo };
+}
+
 function gitBranchAtual() {
   try {
     const res = spawnSync('git', ['branch', '--show-current'], { cwd: ROOT, encoding: 'utf8' });
@@ -1060,7 +1106,11 @@ function branchEsperadaProjeto(projetoAtual) {
 
 // O dev não escolhe o projeto — recebe o que tá na fila do próprio nível.
 // Acha o primeiro projeto ainda não entregue dentro da pasta do nível atual.
-function proximoProjetoNivel() {
+// `excluir` (lista de rel paths) deixa de fora projetos ja "em uso" — usado
+// pelo comando "outro" pra nao sugerir o mesmo projeto que ja ta parado
+// esperando revisao (senao proximoProjetoNivel() sempre devolveria ele de
+// volta, por ser o primeiro nao entregue da pasta).
+function proximoProjetoNivel(excluir) {
   const p  = loadProgress();
   const lv = getLevel(p.xp).lv;
   const nivelDir = path.join(PROJECTS_DIR, lv.folder);
@@ -1069,10 +1119,28 @@ function proximoProjetoNivel() {
     .filter(pj => fs.statSync(path.join(nivelDir, pj)).isDirectory())
     .sort();
   for (const pj of projetos) {
+    const rel = `${lv.folder}/${pj}`;
+    if (excluir && excluir.includes(rel)) continue;
     if (!fs.existsSync(path.join(nivelDir, pj, '.concluido')))
-      return { nivel: lv.folder, pj, rel: `${lv.folder}/${pj}` };
+      return { nivel: lv.folder, pj, rel };
   }
   return null; // tudo entregue neste nivel
+}
+
+// Bloqueado de verdade: nada pra iniciar no projeto em foco (o unico
+// "doing" possivel ja foi mandado pra revisao), e nem trocando de projeto
+// resolve — o parado (se tiver) tambem ta sem nada pra iniciar, ou nem tem
+// projeto parado e a fila do nivel ja acabou. Maximo de 2 projetos "em
+// jogo" ao mesmo tempo (o comando "outro" ja barra um 3º) — se os dois
+// travarem no QA junto, so resta esperar. Bom momento pra estudar.
+function devEstaBloqueado(s) {
+  const focoLivre = s.tasks.some(t => t.status === 'backlog' || t.status === 'doing');
+  if (focoLivre) return false;
+  if (s.projetoEmEspera) {
+    const paradoLivre = (s.projetoEmEspera.tasks || []).some(t => t.status === 'backlog' || t.status === 'doing');
+    return !paradoLivre; // os dois travados no QA
+  }
+  return !proximoProjetoNivel([s.projetoAtual]);
 }
 
 // Prazo da sprint (dias corridos) varia com o nivel — nao faz sentido um
@@ -1251,6 +1319,23 @@ function sprintCommand(input, s) {
     return `${clr(C.green,'>')} Projeto atribuído: ${prox.rel}  ${clr(C.gray,`(${s.sprint}, ${s.prazoDias||15}d)`)}${fraseTarefas ? clr(C.cyan, fraseTarefas) : ''}`;
   }
 
+  // O estado de UM projeto ativo (backlog, ids, timer, prazo, PRs, Actions...)
+  // vive nesses campos do topo do sprint.json. "outro"/"voltar" trocam de
+  // projeto SEM perder progresso: tira uma foto do que ta no topo agora,
+  // guarda em s.projetoEmEspera, e carrega o outro projeto no lugar. So da
+  // pra ter 2 projetos "em jogo" ao mesmo tempo — o em foco (aqui em cima)
+  // e o que ficou esperando revisao.
+  const SLOT_FIELDS = ['projetoAtual','sprint','estimativaHoras','prazoDias','sprintIniciadaEm',
+    'tarefaAtivaId','sessaoIniciadaEm','tempoAtivoMs','pausadoEm','extensoesQA','nextId','nextPr','ciRuns','tasks'];
+  function tirarSnapshot(alvo) {
+    const slot = {};
+    for (const k of SLOT_FIELDS) slot[k] = alvo[k];
+    return slot;
+  }
+  function aplicarSnapshot(alvo, slot) {
+    for (const k of SLOT_FIELDS) alvo[k] = slot[k];
+  }
+
   switch (cmd) {
     // as tarefas ja vem do README quando "projeto" atribui — nao tem mais
     // por que o dev cadastrar a mao, entao nao existe mais comando pra isso.
@@ -1382,6 +1467,34 @@ function sprintCommand(input, s) {
       const pjNome = rest.split('/').slice(1).join('/');
       return atribuir({ nivel: nivelDoProjeto, pj: pjNome, rel: rest });
     }
+    // enquanto uma tarefa espera o QA, o dev nao fica parado — pega outro
+    // projeto da fila pra adiantar, sem perder o progresso do que ficou
+    // esperando (max 2 "em jogo": o em foco e o parado em revisao).
+    case 'outro': {
+      if (!s.projetoAtual) return '  Nenhum projeto ativo.';
+      if (s.projetoEmEspera)
+        return clr(C.yellow, `  Já tem "${s.projetoEmEspera.projetoAtual}" esperando. Usa "voltar" antes de pegar mais um.`);
+      if (!s.tasks.some(t => t.status === 'revisao'))
+        return clr(C.yellow, '  [QA] Nada esperando revisão agora — não faz sentido largar o projeto no meio. Manda alguma tarefa pra "revisar" primeiro.');
+      if (s.tasks.some(t => t.status === 'doing'))
+        return clr(C.yellow, '  Termina ou manda pra revisão a tarefa em andamento antes de trocar de projeto.');
+      const prox = proximoProjetoNivel([s.projetoAtual]);
+      if (!prox) return clr(C.green, '  [QA] Não tem outro projeto disponível no seu nível agora.');
+      const parado = s.projetoAtual;
+      s.projetoEmEspera = tirarSnapshot(s);
+      const msg = atribuir(prox); // troca o topo pro projeto novo e ja salva
+      pushMessage(NPC.pm, `Beleza, foca no "${prox.pj}" enquanto o QA olha o "${parado}". Depois é só "voltar".`);
+      return `${clr(C.cyan,'⇄')} "${parado}" fica esperando revisão.  ${msg}`;
+    }
+    case 'voltar': {
+      if (!s.projetoEmEspera) return '  Nenhum projeto esperando pra voltar.';
+      const atual = tirarSnapshot(s);
+      aplicarSnapshot(s, s.projetoEmEspera);
+      s.projetoEmEspera = atual;
+      saveSprint(s);
+      pushMessage(NPC.qa, `Bom te ver de volta no "${s.projetoAtual}". Vamos que vamos.`);
+      return `${clr(C.cyan,'⇄')} De volta ao projeto "${s.projetoAtual}".  ${clr(C.gray,`("${s.projetoEmEspera.projetoAtual}" fica esperando)`)}`;
+    }
     case 'concluir': {
       if (!s.projetoAtual) return '  Nenhum projeto ativo.';
       const marker = path.join(PROJECTS_DIR, s.projetoAtual, '.concluido');
@@ -1396,7 +1509,13 @@ function sprintCommand(input, s) {
       const projPath = path.join(PROJECTS_DIR, s.projetoAtual);
       if (!fs.existsSync(path.join(projPath, 'node_modules')))
         return `  Execute "npm install" na pasta do projeto primeiro.`;
-      const res = spawnSync('npm', ['test','--','--silent'], { cwd: projPath, encoding:'utf8', stdio:'pipe' });
+
+      // pipeline de CI de verdade: lint primeiro (mais rapido, pega bug
+      // bobo cedo), testes depois — igual a maioria dos workflows reais.
+      const lint = rodarLint(s.projetoAtual);
+      const res  = spawnSync('npm', ['test','--','--silent'], { cwd: projPath, encoding:'utf8', stdio:'pipe' });
+      const testesOk = res.status === 0;
+      const passou   = testesOk && !lint.bloqueado;
 
       // registra a Action (CI) rodada, passe ou falhe — igual um workflow
       // de verdade que roda a cada tentativa de entrega.
@@ -1405,14 +1524,22 @@ function sprintCommand(input, s) {
         numero: s.ciRuns.length + 1,
         quando: new Date().toISOString(),
         projeto: s.projetoAtual,
-        sucesso: res.status === 0,
+        sucesso: passou,
+        testesOk, lintErros: lint.erros, lintAvisos: lint.avisos,
       });
       if (s.ciRuns.length > 30) s.ciRuns = s.ciRuns.slice(-30);
       saveSprint(s);
 
-      if (res.status !== 0) {
+      if (lint.bloqueado) {
+        pushMessage(NPC.lead, `Lint encontrou ${lint.erros} erro(s) de verdade (ex.: ${lint.exemplo}). Corrige antes de mandar pra QA.`);
+        return clr(C.red, `  [LEAD] Bloqueado: lint com ${lint.erros} erro(s). Rode "npx eslint projects/${s.projetoAtual}" na raiz do repositório.`);
+      }
+      if (!testesOk) {
         pushMessage(NPC.qa, 'Entrega bloqueada — testes falhando. Corrige antes de entregar.');
         return clr(C.red,'  [QA] Bloqueado: testes nao passaram. Rode "npm test" no projeto.');
+      }
+      if (lint.avisos > 0) {
+        pushMessage(NPC.lead, `Lint passou sem erro, mas achei ${lint.avisos} aviso(s) de estilo. Dá uma olhada quando puder — não travou a entrega.`);
       }
       // As penalidades de atraso ja foram aplicadas ao vivo (checkOvertime,
       // toda vez que o QA precisou reestimar) — aqui so fecha as contas.
@@ -1438,19 +1565,28 @@ function sprintCommand(input, s) {
         pushMessage(NPC.lead, `Confere se commitou tudo em "${atual}" antes de mergear em develop.`);
       }
 
-      // a sprint nao fica parada esperando o dev pedir "projeto" de novo —
-      // entregou, reinicia na hora com o proximo da fila do nivel (backlog
-      // zerado, ids do zero, prazo em dias recalculado pela dificuldade do
-      // novo projeto). Se o nivel acabou, so avisa e nao atribui nada.
-      const prox = proximoProjetoNivel();
+      // a sprint nao fica parada esperando o dev pedir "projeto" de novo.
+      // Se tinha outro projeto esperando (trocou com "outro" pra nao ficar
+      // parado esperando revisao), volta pra ele em vez de puxar um 3º —
+      // so busca um novo da fila quando nao tem nenhum em espera.
       let proxMsg;
-      if (prox) {
-        pushMessage(NPC.pm, 'Entrega registrada. Já coloquei o próximo projeto na sua sprint.');
-        atribuir(prox); // reinicia backlog/ids/timer e ja preenche o proximo projeto — o "> Projeto atribuido..." vai so pro painel de mensagens, a linha de retorno fica curta
-        proxMsg = clr(C.gray, `  Nova sprint iniciada: ${s.sprint}.`);
+      if (s.projetoEmEspera) {
+        const parado = s.projetoEmEspera.projetoAtual;
+        aplicarSnapshot(s, s.projetoEmEspera);
+        s.projetoEmEspera = null;
+        saveSprint(s);
+        pushMessage(NPC.pm, `Entrega registrada! Voltando pro "${parado}" que tava esperando revisão.`);
+        proxMsg = clr(C.gray, `  Voltando pro projeto que esperava: ${s.projetoAtual}.`);
       } else {
-        pushMessage(NPC.pm, 'Entrega registrada. Foi o último projeto do seu nível — aguarde a próxima leva.');
-        proxMsg = clr(C.green, `  [QA] Nível concluído! Aguarde novos projetos.`);
+        const prox = proximoProjetoNivel();
+        if (prox) {
+          pushMessage(NPC.pm, 'Entrega registrada. Já coloquei o próximo projeto na sua sprint.');
+          atribuir(prox); // reinicia backlog/ids/timer e ja preenche o proximo projeto — o "> Projeto atribuido..." vai so pro painel de mensagens, a linha de retorno fica curta
+          proxMsg = clr(C.gray, `  Nova sprint iniciada: ${s.sprint}.`);
+        } else {
+          pushMessage(NPC.pm, 'Entrega registrada. Foi o último projeto do seu nível — aguarde a próxima leva.');
+          proxMsg = clr(C.green, `  [QA] Nível concluído! Aguarde novos projetos.`);
+        }
       }
 
       return clr(C.green,'★ ENTREGUE! ') + proxMsg + penMsg;
