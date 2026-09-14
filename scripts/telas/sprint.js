@@ -5,7 +5,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { C, INN, LINE, bold, clr, dim, row, stripAnsi } = require('../core/ansi');
 const { APP } = require('../core/app');
-const { LEVELS, MSGS_AMBIENTE, NPC, PROJECTS_DIR, ROOT, contarProjetos, fmtMs, getLevel, loadMessages, loadProgress, loadSprint, pushMessage, saveProgress, saveSprint, tempoAtivoTotal } = require('../core/dados');
+const { LEVELS, MSGS_AMBIENTE, NPC, PROJECTS_DIR, contarProjetos, fmtMs, getLevel, loadMessages, loadProgress, loadSprint, pushMessage, saveProgress, saveSprint, tempoAtivoTotal } = require('../core/dados');
 const { timerLine } = require('../core/draw-utils');
 const { branchEsperadaProjeto, gitBranchAtual } = require('../core/gitflow');
 const { rodarLint } = require('../core/lint');
@@ -131,6 +131,13 @@ function buildSprint(s) {
 
 function pick(arr, ...args) {
   return arr[Math.floor(Math.random() * arr.length)](...args);
+}
+
+// hash curto no estilo de commit git (7 chars hex) — so pra dar a
+// sensacao de um commit de verdade na aba Pull Requests, sem tocar em
+// nenhum repositorio git real.
+function hashCommitFalso() {
+  return Math.random().toString(16).slice(2, 9);
 }
 
 // O dev não escolhe o projeto — recebe o que tá na fila do próprio nível.
@@ -469,9 +476,11 @@ function sprintCommand(input, s) {
       const [n,t] = pick(RESP.revisar,id); pushMessage(n,t);
       return `${clr(C.magenta,'⏳')} #${id} enviada pra revisão do QA. Timer pausado até ele responder.`;
     }
-    // depois que o QA aprova, a tarefa so vira "done" (e XP) quando existir
-    // um commit de verdade na pasta do projeto — confere o git log real,
-    // nao e so o dev digitar o comando e pronto.
+    // igual o resto do GitHub simulado (issues, PRs, Actions sao tudo
+    // numero/estado inventado pelo jogo) — o commit tambem e simulado aqui,
+    // nao depende de um repositorio git de verdade nem de internet pra
+    // funcionar. Commitar de verdade no seu repo continua sendo o certo a
+    // fazer, so que o jogo nao fica checando isso.
     case 'commit': {
       const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
       if (!task) return `  Tarefa #${id} nao encontrada.`;
@@ -486,24 +495,16 @@ function sprintCommand(input, s) {
       if (task.status!=='aprovado')
         return `  #${id} ainda nao foi aprovada pelo QA.`;
 
-      const projRel = path.join('projects', s.projetoAtual);
-      const res = spawnSync('git', ['log', `--since=${task.aprovadoEm}`, '--pretty=format:%H', '--', projRel], { cwd: ROOT, encoding: 'utf8' });
-      // baixou o projeto como ZIP e nunca rodou "git init"? nao tem repo
-      // nenhum pra checar — avisa isso em vez da mensagem generica de
-      // "nao achei commit", que ia parecer que a pessoa so esqueceu de commitar.
-      if (res.status !== 0 && /not a git repository/i.test(res.stderr || ''))
-        return clr(C.yellow, `  [LEAD] Não achei um repositório Git aqui. Roda "git init" na raiz do projeto (não precisa de internet pra isso) e commita antes de tentar de novo.`);
-      if (res.status !== 0 || !res.stdout.trim())
-        return clr(C.yellow, `  [LEAD] Não achei nenhum commit em "projects/${s.projetoAtual}" desde a aprovação. Faz o commit de verdade (git add / git commit) e roda "commit ${id}" de novo.`);
-
-      task.status = 'aceite'; task.commitadoEm = new Date().toISOString();
+      task.status = 'aceite';
+      task.commitHash = hashCommitFalso();
+      task.commitadoEm = new Date().toISOString();
       // resolucao por DATA (nao setTimeout) — mesmo padrao da revisao do QA,
       // sobrevive a fechar o simulador antes da hora.
       const delayMs = 5000 + Math.random() * 10000;
       task.aceiteResolveEm = new Date(Date.now() + delayMs).toISOString();
       saveSprint(s);
       const [n,t] = pick(RESP.commitado,id); pushMessage(n,t);
-      return `${clr(C.cyan,'⏳')} Commit encontrado — PR da #${id} enviada pra aceite.`;
+      return `${clr(C.cyan,'⏳')} Commit ${clr(C.yellow,task.commitHash)} registrado — PR da #${id} enviada pra aceite.`;
     }
     case 'rm': {
       const id = parseInt(rest), idx = s.tasks.findIndex(t=>t.id===id);
