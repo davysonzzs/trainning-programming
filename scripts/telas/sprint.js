@@ -488,6 +488,11 @@ function sprintCommand(input, s) {
 
       const projRel = path.join('projects', s.projetoAtual);
       const res = spawnSync('git', ['log', `--since=${task.aprovadoEm}`, '--pretty=format:%H', '--', projRel], { cwd: ROOT, encoding: 'utf8' });
+      // baixou o projeto como ZIP e nunca rodou "git init"? nao tem repo
+      // nenhum pra checar — avisa isso em vez da mensagem generica de
+      // "nao achei commit", que ia parecer que a pessoa so esqueceu de commitar.
+      if (res.status !== 0 && /not a git repository/i.test(res.stderr || ''))
+        return clr(C.yellow, `  [LEAD] Não achei um repositório Git aqui. Roda "git init" na raiz do projeto (não precisa de internet pra isso) e commita antes de tentar de novo.`);
       if (res.status !== 0 || !res.stdout.trim())
         return clr(C.yellow, `  [LEAD] Não achei nenhum commit em "projects/${s.projetoAtual}" desde a aprovação. Faz o commit de verdade (git add / git commit) e roda "commit ${id}" de novo.`);
 
