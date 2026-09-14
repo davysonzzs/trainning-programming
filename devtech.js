@@ -183,7 +183,7 @@ function loadSprint() {
     const init = { sprint: 'Sprint 1', nextId: 1, tasks: [], tempoAtivoMs: 0,
       sessaoIniciadaEm: null, pausadoEm: null, estimativaHoras: 2, projetoAtual: null,
       extensoesQA: 0, sprintIniciadaEm: null, prazoDias: 15, tarefaAtivaId: null,
-      nextPr: 1, ciRuns: [] };
+      nextPr: 1, ciRuns: [], nextIssueNum: 1, tasksArquivadas: [] };
     fs.writeFileSync(SPRINT_FILE, JSON.stringify(init, null, 2));
     return init;
   }
@@ -200,6 +200,10 @@ function loadSprint() {
     if (!('tarefaAtivaId'    in d)) d.tarefaAtivaId    = null;
     if (!('nextPr'           in d)) d.nextPr           = 1;
     if (!('ciRuns'           in d)) d.ciRuns           = [];
+    // numero global de issue (GitHub simulado) — nao reseta a cada sprint,
+    // diferente de nextId (que e local ao backlog da sprint atual).
+    if (!('nextIssueNum'     in d)) d.nextIssueNum     = d.nextId || 1;
+    if (!('tasksArquivadas'  in d)) d.tasksArquivadas  = [];
     return d;
   } catch { return null; }
 }
@@ -900,27 +904,36 @@ function buildAulas() {
 // so que apresentada no vocabulario de Issues/PRs/Actions. Nenhum estado novo
 // e inventado aqui, tudo vem do sprint.json que ja existe.
 
+// Issues/PRs somem do board da sprint (que reinicia a cada projeto, veja
+// atribuir()), mas o GitHub de verdade nao esquece o que ja foi fechado —
+// entao aqui a lista junta a sprint atual com o que foi arquivado das
+// sprints anteriores. Mais recente primeiro: atual, depois arquivo do
+// mais novo pro mais antigo.
+function todasAsTasks(s) {
+  return [...s.tasks, ...(s.tasksArquivadas || []).slice().reverse()];
+}
+
 function issuesDoBacklog(s) {
-  return s.tasks.map(t => {
+  return todasAsTasks(s).map(t => {
     const fechada = t.status === 'done';
     const cor     = fechada ? C.magenta : C.green;
     const icon    = fechada ? '●' : '○';
     const estado  = fechada ? 'CLOSED' : 'OPEN';
-    const num     = `#${t.id}`.padEnd(5);
+    const num     = `#${t.issueNum ?? t.id}`.padEnd(5);
     const titulo  = (t.title.length > 44 ? t.title.slice(0,43)+'…' : t.title).padEnd(44);
     return `  ${clr(cor,icon)} ${clr(C.gray,num)} ${titulo} ${clr(cor,estado)}`;
   });
 }
 
 function prsDoBacklog(s) {
-  return s.tasks.filter(t => t.prNumero).map(t => {
+  return todasAsTasks(s).filter(t => t.prNumero).map(t => {
     let estado, cor;
     if (t.status === 'done')          { estado = 'MERGEADO';             cor = C.magenta; }
     else if (t.status === 'revisao')  { estado = 'ABERTO — em revisão';  cor = C.green;   }
     else                              { estado = 'MUDANÇAS SOLICITADAS'; cor = C.red;     }
     const num    = `#PR${t.prNumero}`.padEnd(6);
     const titulo = (t.title.length > 30 ? t.title.slice(0,29)+'…' : t.title).padEnd(30);
-    return `  ${clr(cor,'●')} ${clr(C.gray,num)} ${titulo} ${clr(C.gray,'closes #'+t.id).padEnd(20)} ${clr(cor,estado)}`;
+    return `  ${clr(cor,'●')} ${clr(C.gray,num)} ${titulo} ${clr(C.gray,'closes #'+(t.issueNum ?? t.id)).padEnd(20)} ${clr(cor,estado)}`;
   });
 }
 
@@ -1160,10 +1173,14 @@ function sprintCommand(input, s) {
       s.sprintIniciadaEm = new Date().toISOString(); // sprint real, em dias corridos
       s.prazoDias = prazoSprintPara(prox.nivel, prox.pj);
       s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.tempoAtivoMs = 0;
-      // reinicia a sprint de verdade: o backlog/doing/concluido do projeto
-      // anterior nao tem mais o que fazer aqui, e a numeracao das tarefas
-      // volta a comecar do 1 — sem isso o board ficava acumulando tarefas
-      // antigas ja entregues e os ids so cresciam ([6], [7], [8]...).
+      // reinicia a sprint de verdade: o board (backlog/doing/concluido)
+      // nao tem mais o que fazer com tarefas do projeto anterior, e a
+      // numeracao volta a comecar do 1 — sem isso o board ficava
+      // acumulando tarefas antigas ja entregues e os ids so cresciam
+      // ([6], [7], [8]...). Mas elas nao somem de vez: vao pro arquivo,
+      // que e o que alimenta o historico do GitHub simulado (Issues/PRs
+      // continuam la, fechadas/mergeadas, mesmo depois da sprint virar).
+      if (s.tasks.length) s.tasksArquivadas = (s.tasksArquivadas || []).concat(s.tasks);
       s.tasks = [];
       s.nextId = 1;
     }
@@ -1181,7 +1198,7 @@ function sprintCommand(input, s) {
     const porTarefa = s.estimativaHoras;
     if (!jaEstaAtivo && meta.tarefas?.length) {
       for (const titulo of meta.tarefas) {
-        s.tasks.push({ id: s.nextId++, title: titulo, status: 'backlog', estimativaHoras: porTarefa });
+        s.tasks.push({ id: s.nextId++, issueNum: s.nextIssueNum++, title: titulo, status: 'backlog', estimativaHoras: porTarefa });
         adicionadas++;
       }
     }
