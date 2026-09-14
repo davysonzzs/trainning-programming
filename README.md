@@ -38,13 +38,21 @@ Se o simulador estiver rodando, feche-o antes para o reset ter efeito completo.
 
 ```
 /
-├── devtech.js         ← PONTO DE ENTRADA — executa tudo
-├── src/               ← módulos internos (não execute diretamente)
-│   ├── empresa.js
-│   ├── sprint.js
-│   ├── dev.js
-│   ├── projetos.js
-│   └── aulas.js
+├── devtech.js         ← PONTO DE ENTRADA — só estado global, render/teclado e boot
+├── scripts/
+│   ├── core/          ← helpers compartilhados entre telas (não são telas em si)
+│   │   ├── ansi.js        cores, caixas, truncamento de texto
+│   │   ├── app.js         estado global (APP), menu, feed corporativo
+│   │   ├── dados.js       paths, NPCs, load/save (sprint/progress/mensagens)
+│   │   ├── draw-utils.js  barra de XP, medidor, sparkline, timer da tarefa
+│   │   ├── gitflow.js     leitura da branch atual (nunca cria/muda nada)
+│   │   ├── lint.js        roda o ESLint (eslint.config.js) no "concluir"
+│   │   ├── screen.js      indireção pra render()/goTo() sem ciclo de require
+│   │   └── texto.js       quebra de linha, parser de markdown do README
+│   ├── telas/         ← uma tela do menu = um arquivo (build + handle da tecla)
+│   │   ├── menu.js  empresa.js  sprint.js  dev.js
+│   │   └── projetos.js  aulas.js  github.js  standup.js
+│   └── reset.js       ← `npm run resetar`
 │
 ├── projects/
 │   ├── estagiario/     ← 30 mini-projetos (Fase 1 completa, ver abaixo)
