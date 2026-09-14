@@ -1144,6 +1144,56 @@ function sprintCommand(input, s) {
   // virarem parte literal do nome.
   const rest  = parts.slice(1).join(' ').replace(/^(["'])(.*)\1$/, '$2');
 
+  // nome da sprint e estimativa nao sao o dev que inventa — ja vem
+  // definido no README (quem decide isso e o QA/PM). So atribui o
+  // projeto e copia esses dois campos de la.
+  // Usada tanto por "projeto" (atribuicao manual/automatica) quanto por
+  // "concluir" (que encadeia direto pro proximo projeto da fila) — por
+  // isso fica aqui fora, acessivel aos dois cases.
+  function atribuir(prox) {
+    const jaEstaAtivo = s.projetoAtual === prox.rel;
+    const meta = metaDoProjeto(prox.nivel, prox.pj);
+    s.projetoAtual = prox.rel;
+    if (meta.sprint)          s.sprint = meta.sprint;
+    if (meta.estimativaHoras) s.estimativaHoras = meta.estimativaHoras;
+    if (!jaEstaAtivo) {
+      s.sprintIniciadaEm = new Date().toISOString(); // sprint real, em dias corridos
+      s.prazoDias = prazoSprintPara(prox.nivel, prox.pj);
+      s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.tempoAtivoMs = 0;
+      // reinicia a sprint de verdade: o backlog/doing/concluido do projeto
+      // anterior nao tem mais o que fazer aqui, e a numeracao das tarefas
+      // volta a comecar do 1 — sem isso o board ficava acumulando tarefas
+      // antigas ja entregues e os ids so cresciam ([6], [7], [8]...).
+      s.tasks = [];
+      s.nextId = 1;
+    }
+    s.extensoesQA = 0;
+    APP.ov80 = false;
+
+    // o "O que fazer" ja diz o que tem que ser feito — poe direto no
+    // BACKLOG, o dev nao precisa copiar linha por linha do README.
+    // So nao repete se o projeto atribuido e ja estava ativo.
+    // A estimativa do README nao e dividida entre as tarefas — cada
+    // uma recebe o valor CHEIO. Dividir deixaria tarefas de poucos
+    // minutos, o que pressiona demais quem ainda ta aprendendo (1.5h,
+    // 2h ou ate 3h por tarefa e razoavel pra quem ta comecando).
+    let adicionadas = 0;
+    const porTarefa = s.estimativaHoras;
+    if (!jaEstaAtivo && meta.tarefas?.length) {
+      for (const titulo of meta.tarefas) {
+        s.tasks.push({ id: s.nextId++, title: titulo, status: 'backlog', estimativaHoras: porTarefa });
+        adicionadas++;
+      }
+    }
+    saveSprint(s);
+
+    const fraseTarefas = adicionadas > 0
+      ? ` Já deixei ${adicionadas} tarefa(s) no backlog, ${porTarefa}h cada.`
+      : '';
+    pushMessage(NPC.qa, `Próximo da fila pra você: "${prox.pj}". Sprint "${s.sprint}", ${s.prazoDias||15} dias corridos.${fraseTarefas}`);
+    return `${clr(C.green,'>')} Projeto atribuído: ${prox.rel}  ${clr(C.gray,`(${s.sprint}, ${s.prazoDias||15}d)`)}${fraseTarefas ? clr(C.cyan, fraseTarefas) : ''}`;
+  }
+
   switch (cmd) {
     // as tarefas ja vem do README quando "projeto" atribui — nao tem mais
     // por que o dev cadastrar a mao, entao nao existe mais comando pra isso.
@@ -1258,47 +1308,6 @@ function sprintCommand(input, s) {
       const p  = loadProgress();
       const lv = getLevel(p.xp).lv;
 
-      // nome da sprint e estimativa nao sao o dev que inventa — ja vem
-      // definido no README (quem decide isso e o QA/PM). So atribui o
-      // projeto e copia esses dois campos de la.
-      function atribuir(prox) {
-        const jaEstaAtivo = s.projetoAtual === prox.rel;
-        const meta = metaDoProjeto(prox.nivel, prox.pj);
-        s.projetoAtual = prox.rel;
-        if (meta.sprint)          s.sprint = meta.sprint;
-        if (meta.estimativaHoras) s.estimativaHoras = meta.estimativaHoras;
-        if (!jaEstaAtivo) {
-          s.sprintIniciadaEm = new Date().toISOString(); // sprint real, em dias corridos
-          s.prazoDias = prazoSprintPara(prox.nivel, prox.pj);
-          s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.tempoAtivoMs = 0;
-        }
-        s.extensoesQA = 0;
-        APP.ov80 = false;
-
-        // o "O que fazer" ja diz o que tem que ser feito — poe direto no
-        // BACKLOG, o dev nao precisa copiar linha por linha do README.
-        // So nao repete se o projeto atribuido e ja estava ativo.
-        // A estimativa do README nao e dividida entre as tarefas — cada
-        // uma recebe o valor CHEIO. Dividir deixaria tarefas de poucos
-        // minutos, o que pressiona demais quem ainda ta aprendendo (1.5h,
-        // 2h ou ate 3h por tarefa e razoavel pra quem ta comecando).
-        let adicionadas = 0;
-        const porTarefa = s.estimativaHoras;
-        if (!jaEstaAtivo && meta.tarefas?.length) {
-          for (const titulo of meta.tarefas) {
-            s.tasks.push({ id: s.nextId++, title: titulo, status: 'backlog', estimativaHoras: porTarefa });
-            adicionadas++;
-          }
-        }
-        saveSprint(s);
-
-        const fraseTarefas = adicionadas > 0
-          ? ` Já deixei ${adicionadas} tarefa(s) no backlog, ${porTarefa}h cada.`
-          : '';
-        pushMessage(NPC.qa, `Próximo da fila pra você: "${prox.pj}". Sprint "${s.sprint}", ${s.prazoDias||15} dias corridos.${fraseTarefas}`);
-        return `${clr(C.green,'>')} Projeto atribuído: ${prox.rel}  ${clr(C.gray,`(${s.sprint}, ${s.prazoDias||15}d)`)}${fraseTarefas ? clr(C.cyan, fraseTarefas) : ''}`;
-      }
-
       // sem argumento: pega o proximo da fila do seu nivel (o normal do dia a dia)
       if (!rest) {
         const prox = proximoProjetoNivel();
@@ -1361,7 +1370,6 @@ function sprintCommand(input, s) {
       fs.writeFileSync(marker, new Date().toISOString());
       pushMessage(NPC.qa,   'Suite completa passou. Aprovado!');
       pushMessage(NPC.lead, `Entregue! Otimo trabalho, ${p2.name}.`);
-      pushMessage(NPC.pm,   'Entrega registrada. Proximo projeto disponivel.');
 
       // gitflow — so avisa (leitura), nao mexe em nada. O merge de verdade
       // (feature -> develop) e sempre manual, feito pelo aluno.
@@ -1373,7 +1381,22 @@ function sprintCommand(input, s) {
         pushMessage(NPC.lead, `Confere se commitou tudo em "${atual}" antes de mergear em develop.`);
       }
 
-      return clr(C.green,'★ ENTREGUE! Testes OK.') + penMsg;
+      // a sprint nao fica parada esperando o dev pedir "projeto" de novo —
+      // entregou, reinicia na hora com o proximo da fila do nivel (backlog
+      // zerado, ids do zero, prazo em dias recalculado pela dificuldade do
+      // novo projeto). Se o nivel acabou, so avisa e nao atribui nada.
+      const prox = proximoProjetoNivel();
+      let proxMsg;
+      if (prox) {
+        pushMessage(NPC.pm, 'Entrega registrada. Já coloquei o próximo projeto na sua sprint.');
+        atribuir(prox); // reinicia backlog/ids/timer e ja preenche o proximo projeto — o "> Projeto atribuido..." vai so pro painel de mensagens, a linha de retorno fica curta
+        proxMsg = clr(C.gray, `  Nova sprint iniciada: ${s.sprint}.`);
+      } else {
+        pushMessage(NPC.pm, 'Entrega registrada. Foi o último projeto do seu nível — aguarde a próxima leva.');
+        proxMsg = clr(C.green, `  [QA] Nível concluído! Aguarde novos projetos.`);
+      }
+
+      return clr(C.green,'★ ENTREGUE! ') + proxMsg + penMsg;
     }
     case '': case undefined: return null;
     default: return `  Comando desconhecido: "${cmd}"`;
