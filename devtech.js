@@ -278,6 +278,8 @@ const APP = {
   readmeScroll: 0,
   githubTab: 'issues',     // issues | prs | actions
   githubScroll: 0,
+  standupPasso: 0,         // 0 ontem | 1 hoje | 2 bloqueio | 3 fim
+  standupRespostas: {},
 
   // empresa
   feed: [], feedTick: 0, incAtivo: false, incIdx: null,
@@ -612,6 +614,15 @@ function buildDev() {
   if (p.atrasadas > 0) o += row(`  ${clr(C.gray,'Atrasos       ')}   ${clr(C.yellow,String(p.atrasadas))} sprint(s) atrasada(s)`) + '\n';
   if (p.avisos > 0)    o += row(`  ${clr(C.yellow,'⚠ Avisos      ')}   ${clr(C.yellow,String(p.avisos))} aviso(s) de desempenho`) + '\n';
   o += row('') + '\n';
+  const ultimoStandup = (p.standups || []).slice(-1)[0];
+  if (ultimoStandup && !ultimoStandup.pulado) {
+    o += `╠${LINE}╣\n`;
+    o += row(bold(` ÚLTIMO STANDUP — ${ultimoStandup.data}`)) + '\n';
+    o += `╠${LINE}╣\n`;
+    o += row(`  ${clr(C.gray,'Ontem:')}    ${ultimoStandup.ontem || clr(C.gray,'(nada registrado)')}`) + '\n';
+    o += row(`  ${clr(C.gray,'Hoje:')}     ${ultimoStandup.hoje || clr(C.gray,'(nada registrado)')}`) + '\n';
+    o += row(`  ${clr(C.gray,'Bloqueio:')} ${ultimoStandup.bloqueio ? clr(C.yellow,ultimoStandup.bloqueio) : clr(C.green,'nenhum')}`) + '\n';
+  }
   o += `╠${LINE}╣\n`;
   o += row(`  ${xpBar(p.xp, lv, 40)}`) + '\n';
   if (next)
@@ -634,6 +645,56 @@ function buildDev() {
   o += row(` ${clr(C.cyan,'>')} ${APP.inputBuf}${clr(C.gray,'█')}`) + '\n';
   o += `╚${LINE}╝\n`;
   return o;
+}
+
+// ── DAILY STANDUP ────────────────────────────────────────────────────────────
+
+function buildStandup() {
+  const passo = APP.standupPasso;
+
+  let o = C.cls + C.hide;
+  o += `╔${LINE}╗\n`;
+  o += cen(bold('DEVTECH SISTEMAS S.A.  ─  Daily Standup')) + '\n';
+  o += row(dim('  Ritual diário do time — leva 30 segundos, todo mundo faz.')) + '\n';
+  o += `╠${LINE}╣\n`;
+  o += row('') + '\n';
+
+  for (let i = 0; i < STANDUP_PERGUNTAS.length; i++) {
+    const pg = STANDUP_PERGUNTAS[i];
+    if (i < passo) {
+      const resp = APP.standupRespostas[pg.campo] || clr(C.gray, '(nenhum)');
+      o += row(`  ${clr(C.green,'✓')} ${clr(C.gray,pg.texto)}`) + '\n';
+      for (const l of wrapWords(resp, INN - 4)) o += row(`      ${l}`) + '\n';
+      o += row('') + '\n';
+    } else if (i === passo) {
+      o += row(`  ${clr(C.cyan,'▶')} ${bold(pg.texto)}`) + '\n';
+    }
+  }
+
+  o += `╠${LINE}╣\n`;
+  o += row(dim('  Enter confirma   Esc pula o standup de hoje')) + '\n';
+  o += `╠${LINE}╣\n`;
+  o += row(` ${clr(C.cyan,'>')} ${APP.inputBuf}${clr(C.gray,'█')}`) + '\n';
+  o += `╚${LINE}╝\n`;
+  return o;
+}
+
+function handleStandupKey(key) {
+  if (key === '\r') {
+    const pg = STANDUP_PERGUNTAS[APP.standupPasso];
+    APP.standupRespostas[pg.campo] = APP.inputBuf.trim();
+    APP.inputBuf = '';
+    APP.standupPasso++;
+    if (APP.standupPasso >= STANDUP_PERGUNTAS.length) {
+      salvarStandup(APP.standupRespostas, false);
+      goTo('menu');
+    }
+  } else if (key === '\x7f' || key === '\x08') {
+    APP.inputBuf = APP.inputBuf.slice(0, -1);
+  } else if (key.charCodeAt(0) >= 32) {
+    APP.inputBuf += key;
+  }
+  render();
 }
 
 // ── PROJETOS ─────────────────────────────────────────────────────────────────
@@ -1769,6 +1830,45 @@ function checkAcessoDiario() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  DAILY STANDUP — ontem / hoje / bloqueio, uma vez por dia real, igual o
+//  ritual de verdade. Nao trava o jogo (Esc pula), mas fica registrado.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STANDUP_PERGUNTAS = [
+  { campo: 'ontem',    texto: 'O que você fez ontem?' },
+  { campo: 'hoje',     texto: 'O que pretende fazer hoje?' },
+  { campo: 'bloqueio', texto: 'Algum bloqueio? (Enter em branco = nenhum)' },
+];
+
+function precisaStandupHoje(p) {
+  return p.ultimoStandupEm !== localDateStr(new Date());
+}
+
+function salvarStandup(respostas, pulado) {
+  const p = loadProgress();
+  p.ultimoStandupEm = localDateStr(new Date());
+  p.standups = p.standups || [];
+  p.standups.push({
+    data: p.ultimoStandupEm,
+    ontem: respostas.ontem || '',
+    hoje: respostas.hoje || '',
+    bloqueio: respostas.bloqueio || '',
+    pulado: !!pulado,
+  });
+  if (p.standups.length > 30) p.standups = p.standups.slice(-30);
+  saveProgress(p);
+
+  if (pulado) {
+    pushMessage(NPC.pm, 'Sem problema, standup de hoje fica em branco. Se quiser, dá pra registrar mais tarde.');
+  } else if (respostas.bloqueio && respostas.bloqueio.trim()) {
+    pushMessage(NPC.lead, `Bloqueio anotado: "${respostas.bloqueio.trim()}". Bora ver isso — chama se travar.`);
+    pushMessage(NPC.qa, 'Fico de olho, avisa se precisar de uma revisão mais rápida hoje.');
+  } else {
+    pushMessage(NPC.pm, 'Boa, sem bloqueios. Bom trabalho hoje!');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  RENDER LOOP
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1782,6 +1882,7 @@ function render() {
     case 'projetos': out = buildProjetos(); break;
     case 'aulas':    out = buildAulas();   break;
     case 'github':   out = buildGithub();  break;
+    case 'standup':  out = buildStandup(); break;
   }
   process.stdout.write(out);
 }
@@ -1797,6 +1898,7 @@ function goTo(screen) {
   if (screen === 'aulas')    { APP.aulaLines = []; APP.aulasScroll = 0; }
   if (screen === 'projetos') { APP.projetosScroll = 0; APP.projView = 'list'; }
   if (screen === 'github')   { APP.githubScroll = 0; }
+  if (screen === 'standup')  { APP.standupPasso = 0; APP.standupRespostas = {}; }
 }
 
 if (!process.stdin.isTTY) {
@@ -1814,6 +1916,10 @@ process.stdin.on('data', (key) => {
     if (APP.screen === 'projetos' && APP.projView === 'readme') {
       APP.projView = 'list';     // volta pro quadro, não pro menu
       render(); return;
+    }
+    if (APP.screen === 'standup') {
+      salvarStandup(APP.standupRespostas, true); // registra como pulado, nao trava o jogo
+      goTo('menu'); render(); return;
     }
     goTo('menu'); render(); return; // Esc
   }
@@ -1833,6 +1939,7 @@ process.stdin.on('data', (key) => {
     case 'projetos': handleProjetosKey(key); break;
     case 'aulas':    handleAulasKey(key); break;
     case 'github':   handleGithubKey(key); break;
+    case 'standup':  handleStandupKey(key); break;
     case 'empresa':  render(); break;
   }
 });
@@ -2029,6 +2136,10 @@ boot().then(() => {
   // resolve na hora qualquer revisao que devia ter terminado enquanto o
   // app estava fechado (ou uma que ficou presa de uma versao anterior)
   checkRevisoesQA();
+
+  // primeira abertura do dia: pede o standup antes de qualquer outra tela
+  // (nao trava — Esc pula e fica registrado como pulado)
+  if (precisaStandupHoje(loadProgress())) goTo('standup');
 
   render();
 

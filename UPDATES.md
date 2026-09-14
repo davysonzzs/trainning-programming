@@ -13,6 +13,7 @@
 - ✨ Se os dois projetos travarem no QA ao mesmo tempo, o painel avisa e sugere ir pra Trilha de Estudos em vez de ficar esperando parado
 - ✨ `concluir` agora volta automaticamente pro projeto que ficou esperando (se tinha um), em vez de puxar um terceiro novo da fila
 - 🔨 Novo projeto bônus `31-refatoracao-modulo-descontos` (Estagiário): diferente dos outros 30, o código já existe — malfeito, duplicado e com um bug real escondido (causado exatamente pela duplicação) — a tarefa é consertar e refatorar sem quebrar os testes, praticando manutenção em vez de criação do zero
+- ✨ **Daily Standup**: na primeira vez que abre o simulador no dia, pergunta o que fez ontem / vai fazer hoje / algum bloqueio — não trava (Esc pula), fica registrado e o último standup aparece na Ficha do Desenvolvedor `[3]`
 
 ## 2026-09-13
 - 🐛 Bordas não quebram mais com nomes/textos longos

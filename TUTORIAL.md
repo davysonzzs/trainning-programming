@@ -14,7 +14,14 @@ node devtech.js
 ```
 
 Uma tela de boot animada carrega o sistema corporativo.
-Você chega ao menu principal com 6 opções navegáveis por ↑↓ + Enter.
+Na **primeira vez que você abre o sistema em cada dia**, antes do menu, aparece o
+**Daily Standup**: três perguntas rápidas (o que fez ontem / vai fazer hoje / algum
+bloqueio). Responde e dá Enter em cada uma — ou pressiona Esc pra pular sem responder,
+se não quiser. Não trava o jogo, mas fica registrado e o último standup aparece na
+Ficha do Desenvolvedor.
+
+Depois disso (ou direto, se já fez o standup hoje), você chega ao menu principal com
+6 opções navegáveis por ↑↓ + Enter.
 
 ---
 
