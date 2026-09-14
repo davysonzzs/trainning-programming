@@ -224,24 +224,69 @@ Com tudo aprovado:
 
 O sistema vai:
 1. Conferir que não sobrou tarefa pendente
-2. Rodar `npm test` automaticamente
-3. Se passou: marcar como `[ENTREGUE]` e notificar os NPCs
-4. Sugerir (pelo `[LEAD]`) fazer o merge da feature de volta:
+2. Rodar o **lint** (ESLint) — pega erro de verdade (variável que não
+   existe, código morto...); aviso de estilo não trava a entrega
+3. Rodar `npm test` automaticamente
+4. Se os dois passaram: marcar como `[ENTREGUE]` e notificar os NPCs
+5. Sugerir (pelo `[LEAD]`) fazer o merge da feature de volta:
    ```bash
    git checkout dev/seu-nome
    git merge feature/mensagens-onboarding
    ```
 
+Se o lint achar **erro** de verdade, a entrega é bloqueada antes mesmo
+de chegar no teste — corrige e roda `concluir` de novo. Pra ver o
+relatório completo sem esperar o `concluir`, rode direto (na raiz do
+repositório, não dentro da pasta do projeto):
+```bash
+npx eslint projects/estagiario/01-mensagens-onboarding
+```
+
+**A sprint reinicia sozinha.** Assim que você entrega, o backlog zera e
+o próximo projeto da sua fila já entra automaticamente — não precisa
+digitar `projeto` de novo.
+
 Dá uma olhada em **[6] GitHub (simulado)** no menu — sua tarefa `#1`
 aparece como **Issue #1 CLOSED**, o `revisar 1` que você deu virou
 **Pull Request #1 MERGEADO**, e o `concluir` que acabou de rodar aparece
-na aba **Actions** como um workflow `success`. É o mesmo vocabulário que
-qualquer time usa no dia a dia — issue, PR, CI — só que sem precisar de
-conta no GitHub.
+na aba **Actions** como um workflow `success` (com o resultado do lint e
+dos testes lado a lado). Dá pra ver o **README** do projeto e os
+**Commits** de verdade (via `git log`) direto nas outras abas. É o
+mesmo vocabulário que qualquer time usa no dia a dia — issue, PR, CI —
+só que sem precisar de conta no GitHub.
 
 ---
 
-## 8. Consequências de atraso
+## 8. Enquanto o QA revisa, siga em frente
+
+Igual no trampo de verdade: uma revisão pode demorar (o QA simulado leva
+de 8 a 20 segundos; uma PR de verdade pode levar dias). Em vez de ficar
+esperando parado, dá pra adiantar **outro projeto** sem perder o
+progresso do atual:
+
+```
+> revisar 3        (manda a última tarefa disponível pro QA)
+> outro             (pega o próximo projeto da fila, sem descartar o outro)
+```
+
+O painel passa a mostrar `⏳ esperando: estagiario/01-...` no topo — é o
+projeto que ficou parado. Quando quiser voltar pra ele (pra conferir se o
+QA já respondeu, ou seguir outra tarefa do backlog dele):
+
+```
+> voltar
+```
+
+**Só dá pra ter 2 projetos "em jogo" ao mesmo tempo.** Se os dois
+travarem no QA junto (nada pra iniciar em nenhum dos dois), o painel
+avisa e sugere ir pra **[5] Trilha de Estudos** — é uma boa hora pra
+estudar em vez de ficar só esperando. Entregar um dos dois projetos
+(`concluir`) volta automaticamente pro outro, se ele ainda estiver
+esperando.
+
+---
+
+## 9. Consequências de atraso
 
 Diferente de antes, a penalidade **não espera a entrega** — ela acontece
 na hora em que o estouro rola, e escala a cada vez que se repete na
@@ -260,7 +305,7 @@ estourar sem travar o jogo, mas isso pesa no seu histórico.
 
 ---
 
-## 9. Peça ajuda se travar
+## 10. Peça ajuda se travar
 
 Antes de travar por muito tempo, use o **GitHub Copilot Chat** como QA.
 Ele está configurado para agir como **QA Ana** — explica conceitos e aponta
@@ -273,7 +318,7 @@ Exemplos de perguntas úteis:
 
 ---
 
-## 10. Faça os 30 projetos
+## 11. Faça os 30 projetos
 
 ```
 01 → 02 → 03 → ... → 29 → 30

@@ -7,6 +7,11 @@
 - ✨ GitHub simulado ganhou 2 abas novas: **Commits** (lê o `git log` de verdade, filtrado pro projeto ativo — hash, autor, data e mensagem) e **README** (o README.md do projeto atual, formatado)
 - ✨ Badge de build (`passing`/`failing`/sem runs) no topo da tela de GitHub, refletindo a última Action — visível em qualquer aba
 - ✨ Pull Requests agora mostram um status check de CI (`CI ✓`/`CI ✗`) antes do MERGEADO, reforçando o hábito de checar o build antes de mergear
+- ✨ `concluir` agora roda **lint de verdade** (ESLint, config compartilhada em `eslint.config.js`) antes dos testes — bloqueia só em erro real (variável indefinida, código morto...), aviso de estilo não trava a entrega e vira comentário do Lead
+- ✨ Aba **Actions** mostra os dois jobs do pipeline (lint e test) lado a lado em cada run, igual um workflow de CI de verdade
+- ✨ Novos comandos `outro` / `voltar` no Painel de Sprint: enquanto uma tarefa espera revisão do QA (pode demorar), dá pra adiantar outro projeto da fila sem perder o progresso do atual — no máximo 2 projetos "em jogo" ao mesmo tempo
+- ✨ Se os dois projetos travarem no QA ao mesmo tempo, o painel avisa e sugere ir pra Trilha de Estudos em vez de ficar esperando parado
+- ✨ `concluir` agora volta automaticamente pro projeto que ficou esperando (se tinha um), em vez de puxar um terceiro novo da fila
 
 ## 2026-09-13
 - 🐛 Bordas não quebram mais com nomes/textos longos
