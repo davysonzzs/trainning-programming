@@ -5,7 +5,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { C, INN, LINE, bold, clr, dim, row, stripAnsi } = require('../core/ansi');
 const { APP } = require('../core/app');
-const { LEVELS, MSGS_AMBIENTE, NPC, PROJECTS_DIR, contarProjetos, fmtMs, getLevel, loadMessages, loadProgress, loadSprint, pushMessage, saveProgress, saveSprint, tempoAtivoTotal } = require('../core/dados');
+const { LEVELS, MSGS_AMBIENTE, NPC, PROJECTS_DIR, ROOT, contarProjetos, fmtMs, getLevel, loadMessages, loadProgress, loadSprint, pushMessage, saveProgress, saveSprint, tempoAtivoTotal } = require('../core/dados');
 const { timerLine } = require('../core/draw-utils');
 const { branchEsperadaProjeto, gitBranchAtual } = require('../core/gitflow');
 const { rodarLint } = require('../core/lint');
@@ -17,7 +17,10 @@ function buildSprint(s) {
   const p        = loadProgress();
   const backlog  = s.tasks.filter(t => t.status==='backlog');
   const doing    = s.tasks.filter(t => t.status==='doing');
-  const revisao  = s.tasks.filter(t => t.status==='revisao');
+  // "aprovado" (QA ok, esperando o commit real) e "aceite" (commitado,
+  // esperando a PR ser aceita) continuam visualmente em EM REVISÃO — a
+  // tarefa so sai dali quando a PR de fato mergeia (done).
+  const revisao  = s.tasks.filter(t => t.status==='revisao' || t.status==='aprovado' || t.status==='aceite');
   const done     = s.tasks.filter(t => t.status==='done');
   const rows     = Math.max(backlog.length, doing.length, revisao.length, done.length, 1);
   const pausado  = !s.sessaoIniciadaEm;
@@ -53,6 +56,8 @@ function buildSprint(s) {
 
   function revisaoCell(task) {
     if (!task) return ' '.repeat(COL);
+    if (task.status === 'aprovado') return comSufixo(task, ' ✔ commit');
+    if (task.status === 'aceite')   return comSufixo(task, ' ⏳ PR');
     const min = Math.floor((Date.now()-new Date(task.enviadoRevisaoEm||Date.now()).getTime())/60000);
     return comSufixo(task, ` ⏳${min>0?min+'m':''}`);
   }
@@ -116,7 +121,7 @@ function buildSprint(s) {
   }
   if (APP.lastFb) o += row(` ${APP.lastFb}`) + '\n', o += `╠${LINE}╣\n`;
   o += row(dim('  projeto  (pega o próximo da sua fila)   outro / voltar  (troca sem perder progresso)')) + '\n';
-  o += row(dim('  ver/start/revisar/rm <nº>   pausar   retomar   concluir')) + '\n';
+  o += row(dim('  ver/start/revisar/commit/rm <nº>   pausar   retomar   concluir')) + '\n';
   o += `╠${LINE}╣\n`;
   o += row(` ${clr(C.cyan,'>')} ${APP.inputBuf}${clr(C.gray,'█')}`) + '\n';
   o += `╚${LINE}╝\n`;
@@ -158,10 +163,12 @@ function proximoProjetoNivel(excluir) {
 // jogo" ao mesmo tempo (o comando "outro" ja barra um 3º) — se os dois
 // travarem no QA junto, so resta esperar. Bom momento pra estudar.
 function devEstaBloqueado(s) {
-  const focoLivre = s.tasks.some(t => t.status === 'backlog' || t.status === 'doing');
+  // "aprovado" nao e bloqueio de verdade — o dev tem uma acao pra fazer
+  // (commitar). "aceite" ja e so esperar o aceite da PR, igual 'revisao'.
+  const focoLivre = s.tasks.some(t => ['backlog','doing','aprovado'].includes(t.status));
   if (focoLivre) return false;
   if (s.projetoEmEspera) {
-    const paradoLivre = (s.projetoEmEspera.tasks || []).some(t => t.status === 'backlog' || t.status === 'doing');
+    const paradoLivre = (s.projetoEmEspera.tasks || []).some(t => ['backlog','doing','aprovado'].includes(t.status));
     return !paradoLivre; // os dois travados no QA
   }
   return !proximoProjetoNivel([s.projetoAtual]);
@@ -226,6 +233,8 @@ const RESP = {
   revisar:   [(id)=>[NPC.qa,`Recebi a #${id}, vou dar uma olhada.`], (id)=>[NPC.dev,`Mandei a #${id} pra revisão. Torcendo.`]],
   aprovado:  [(id)=>[NPC.qa,`Testei #${id}. Passou, aprovado! Pode commitar.`], (id)=>[NPC.lead,`#${id} aprovada no code review. Não esquece o commit no imperativo.`]],
   reprovado: [(id)=>[NPC.qa,`#${id} voltou — achei um problema, dá uma olhada de novo.`], (id)=>[NPC.lead,`#${id} precisa de ajuste antes de fechar.`]],
+  commitado: [(id)=>[NPC.lead,`Commit da #${id} recebido. Mandei a PR pra aprovação.`], (id)=>[NPC.dev,`Boa, #${id} commitada. Agora é esperar o aceite.`]],
+  aceito:    [(id)=>[NPC.lead,`PR da #${id} aceita e mergeada. Show!`], (id)=>[NPC.pm,`#${id} entregue de vez — mergeada.`]],
   pausar:    [()=>[NPC.dev,`Ate mais!`], ()=>[NPC.lead,`Salva antes de sair.`]],
   retomar:   [()=>[NPC.dev,`Bem-vindo de volta!`], ()=>[NPC.lead,`Bora terminar.`]],
 };
@@ -244,34 +253,49 @@ function checkRevisoesQA() {
   let mudou = false;
 
   for (const task of s.tasks) {
-    if (task.status !== 'revisao') continue;
+    if (task.status === 'revisao') {
+      // tarefa presa de uma sessao anterior (fechada antes da hora, ou de
+      // uma versao mais antiga do simulador) — resolve agora mesmo.
+      if (!task.revisaoResolveEm) {
+        task.revisaoResolveEm = new Date().toISOString();
+        task.revisaoAprovada  = Math.random() < 0.7;
+      }
+      if (Date.now() < new Date(task.revisaoResolveEm).getTime()) continue;
 
-    // tarefa presa de uma sessao anterior (fechada antes da hora, ou de
-    // uma versao mais antiga do simulador) — resolve agora mesmo.
-    if (!task.revisaoResolveEm) {
-      task.revisaoResolveEm = new Date().toISOString();
-      task.revisaoAprovada  = Math.random() < 0.7;
+      if (task.revisaoAprovada) {
+        // QA aprovou, mas so vira "done" (e XP) depois do commit de verdade
+        // e do aceite da PR — ver o comando "commit" e o bloco 'aceite' abaixo.
+        task.status = 'aprovado'; task.aprovadoEm = new Date().toISOString();
+        const [n, t] = pick(RESP.aprovado, task.id); pushMessage(n, t);
+        APP._lastRevisaoMsg = clr(C.green, `★ #${task.id} aprovada pelo QA! Faz o commit de verdade e roda "commit ${task.id}".`);
+        // acabou de codar — o cronometro fica livre ate a proxima ser iniciada
+        s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
+      } else {
+        task.status = 'doing';
+        const [n, t] = pick(RESP.reprovado, task.id); pushMessage(n, t);
+        APP._lastRevisaoMsg = clr(C.yellow, `#${task.id} voltou pra desenvolvimento — o QA pediu ajuste.`);
+        // mesma tarefa continua ativa — o relogio dela volta a rodar de onde parou
+        s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
+      }
+      delete task.revisaoResolveEm;
+      delete task.revisaoAprovada;
+      mudou = true;
+      continue;
     }
-    if (Date.now() < new Date(task.revisaoResolveEm).getTime()) continue;
 
-    if (task.revisaoAprovada) {
+    if (task.status === 'aceite') {
+      // tarefa presa de uma sessao anterior — resolve agora mesmo.
+      if (!task.aceiteResolveEm) task.aceiteResolveEm = new Date().toISOString();
+      if (Date.now() < new Date(task.aceiteResolveEm).getTime()) continue;
+
       task.status = 'done'; task.completedAt = new Date().toISOString();
       task.tempoGastoMs = tempoAtivoTotal(s); // registro do tempo real gasto nela
       const p = loadProgress(); p.xp += 25; saveProgress(p);
-      const [n, t] = pick(RESP.aprovado, task.id); pushMessage(n, t);
-      APP._lastRevisaoMsg = clr(C.green, `★ #${task.id} aprovada pelo QA! +25 XP`);
-      // acabou essa tarefa — o cronometro fica livre ate a proxima ser iniciada
-      s.tarefaAtivaId = null; s.sessaoIniciadaEm = null; s.pausadoEm = new Date().toISOString();
-    } else {
-      task.status = 'doing';
-      const [n, t] = pick(RESP.reprovado, task.id); pushMessage(n, t);
-      APP._lastRevisaoMsg = clr(C.yellow, `#${task.id} voltou pra desenvolvimento — o QA pediu ajuste.`);
-      // mesma tarefa continua ativa — o relogio dela volta a rodar de onde parou
-      s.sessaoIniciadaEm = new Date().toISOString(); s.pausadoEm = null;
+      const [n, t] = pick(RESP.aceito, task.id); pushMessage(n, t);
+      APP._lastRevisaoMsg = clr(C.green, `★ PR da #${task.id} aceita e mergeada! +25 XP`);
+      delete task.aceiteResolveEm;
+      mudou = true;
     }
-    delete task.revisaoResolveEm;
-    delete task.revisaoAprovada;
-    mudou = true;
   }
 
   if (mudou) {
@@ -382,7 +406,7 @@ function sprintCommand(input, s) {
       // uma tarefa de cada vez, na ordem — nao da pra pular pra frente
       // nem ter duas ativas ao mesmo tempo. So avanca quando a anterior
       // for finalizada e aprovada pelo QA (status 'done').
-      const outraAtiva = s.tasks.find(t => t.id!==id && (t.status==='doing' || t.status==='revisao'));
+      const outraAtiva = s.tasks.find(t => t.id!==id && ['doing','revisao','aprovado','aceite'].includes(t.status));
       if (outraAtiva)
         return clr(C.yellow, `  [QA] Termina a #${outraAtiva.id} antes de começar outra — uma de cada vez.`);
 
@@ -421,9 +445,11 @@ function sprintCommand(input, s) {
     case 'revisar': {
       const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
       if (!task) return `  Tarefa #${id} nao encontrada.`;
-      if (task.status==='backlog') return `  #${id} nem foi iniciada ainda — use: start ${id}`;
-      if (task.status==='revisao') return `  #${id} ja esta em revisao. Aguarde o QA.`;
-      if (task.status==='done')    return `  #${id} ja concluida.`;
+      if (task.status==='backlog')  return `  #${id} nem foi iniciada ainda — use: start ${id}`;
+      if (task.status==='revisao')  return `  #${id} ja esta em revisao. Aguarde o QA.`;
+      if (task.status==='aprovado') return `  #${id} ja foi aprovada pelo QA — falta commitar: commit ${id}`;
+      if (task.status==='aceite')   return `  #${id} ja foi commitada, aguardando aceite da PR.`;
+      if (task.status==='done')     return `  #${id} ja concluida.`;
       task.status = 'revisao'; task.enviadoRevisaoEm = new Date().toISOString();
       // vira uma PR simulada na primeira vez que sai do backlog pra revisao —
       // se voltar (reprovada) e for de novo, e a mesma PR, so reaberta.
@@ -442,6 +468,37 @@ function sprintCommand(input, s) {
       saveSprint(s);
       const [n,t] = pick(RESP.revisar,id); pushMessage(n,t);
       return `${clr(C.magenta,'⏳')} #${id} enviada pra revisão do QA. Timer pausado até ele responder.`;
+    }
+    // depois que o QA aprova, a tarefa so vira "done" (e XP) quando existir
+    // um commit de verdade na pasta do projeto — confere o git log real,
+    // nao e so o dev digitar o comando e pronto.
+    case 'commit': {
+      const id = parseInt(rest), task = s.tasks.find(t=>t.id===id);
+      if (!task) return `  Tarefa #${id} nao encontrada.`;
+      if (task.status==='backlog' || task.status==='doing')
+        return `  #${id} ainda nao foi pra revisão do QA — use: revisar ${id}`;
+      if (task.status==='revisao')
+        return `  #${id} ainda esta em revisao com o QA. Aguarde a aprovação antes de commitar.`;
+      if (task.status==='aceite')
+        return `  #${id} ja foi commitada, aguardando aceite da PR.`;
+      if (task.status==='done')
+        return `  #${id} ja concluida.`;
+      if (task.status!=='aprovado')
+        return `  #${id} ainda nao foi aprovada pelo QA.`;
+
+      const projRel = path.join('projects', s.projetoAtual);
+      const res = spawnSync('git', ['log', `--since=${task.aprovadoEm}`, '--pretty=format:%H', '--', projRel], { cwd: ROOT, encoding: 'utf8' });
+      if (res.status !== 0 || !res.stdout.trim())
+        return clr(C.yellow, `  [LEAD] Não achei nenhum commit em "projects/${s.projetoAtual}" desde a aprovação. Faz o commit de verdade (git add / git commit) e roda "commit ${id}" de novo.`);
+
+      task.status = 'aceite'; task.commitadoEm = new Date().toISOString();
+      // resolucao por DATA (nao setTimeout) — mesmo padrao da revisao do QA,
+      // sobrevive a fechar o simulador antes da hora.
+      const delayMs = 5000 + Math.random() * 10000;
+      task.aceiteResolveEm = new Date(Date.now() + delayMs).toISOString();
+      saveSprint(s);
+      const [n,t] = pick(RESP.commitado,id); pushMessage(n,t);
+      return `${clr(C.cyan,'⏳')} Commit encontrado — PR da #${id} enviada pra aceite.`;
     }
     case 'rm': {
       const id = parseInt(rest), idx = s.tasks.findIndex(t=>t.id===id);
@@ -498,8 +555,8 @@ function sprintCommand(input, s) {
       if (!s.projetoAtual) return '  Nenhum projeto ativo.';
       if (s.projetoEmEspera)
         return clr(C.yellow, `  Já tem "${s.projetoEmEspera.projetoAtual}" esperando. Usa "voltar" antes de pegar mais um.`);
-      if (!s.tasks.some(t => t.status === 'revisao'))
-        return clr(C.yellow, '  [QA] Nada esperando revisão agora — não faz sentido largar o projeto no meio. Manda alguma tarefa pra "revisar" primeiro.');
+      if (!s.tasks.some(t => ['revisao','aprovado','aceite'].includes(t.status)))
+        return clr(C.yellow, '  [QA] Nada esperando revisão, commit ou aceite agora — não faz sentido largar o projeto no meio. Manda alguma tarefa pra "revisar" primeiro.');
       if (s.tasks.some(t => t.status === 'doing'))
         return clr(C.yellow, '  Termina ou manda pra revisão a tarefa em andamento antes de trocar de projeto.');
       const prox = proximoProjetoNivel([s.projetoAtual]);

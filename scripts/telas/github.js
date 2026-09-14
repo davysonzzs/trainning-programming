@@ -29,9 +29,11 @@ function prsDoBacklog(s) {
   const ciTag  = !ultima ? clr(C.gray,'CI —') : ultima.sucesso ? clr(C.green,'CI ✓') : clr(C.red,'CI ✗');
   return s.tasks.filter(t => t.prNumero).map(t => {
     let estado, cor;
-    if (t.status === 'done')          { estado = 'MERGEADO';             cor = C.magenta; }
-    else if (t.status === 'revisao')  { estado = 'ABERTO — em revisão';  cor = C.green;   }
-    else                              { estado = 'MUDANÇAS SOLICITADAS'; cor = C.red;     }
+    if (t.status === 'done')          { estado = 'MERGEADO';                    cor = C.magenta; }
+    else if (t.status === 'revisao')  { estado = 'ABERTO — em revisão';         cor = C.green;   }
+    else if (t.status === 'aprovado') { estado = 'APROVADO — commit';           cor = C.cyan;    }
+    else if (t.status === 'aceite')   { estado = 'COMMITADO — aceite';          cor = C.yellow;  }
+    else                              { estado = 'MUDANÇAS SOLICITADAS';        cor = C.red;     }
     const num    = `#PR${t.prNumero}`.padEnd(6);
     const titulo = (t.title.length > 26 ? t.title.slice(0,25)+'…' : t.title).padEnd(26);
     return `  ${clr(cor,'●')} ${clr(C.gray,num)} ${titulo} ${clr(C.gray,'closes #'+t.id).padEnd(11)} ${ciTag}  ${clr(cor,estado)}`;
