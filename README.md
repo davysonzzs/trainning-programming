@@ -55,11 +55,11 @@ Se o simulador estiver rodando, feche-o antes para o reset ter efeito completo.
 │   └── reset.js       ← `npm run resetar`
 │
 ├── projects/
-│   ├── estagiario/     ← 30 mini-projetos (Fase 1 completa, ver abaixo)
+│   ├── estagiario/     ← 32 mini-projetos + 1 bônus (Fase 1 completa, ver abaixo)
 │   │   ├── 01-mensagens-onboarding/
 │   │   ├── 02-guia-preparo-pedido/
 │   │   ├── ...
-│   │   └── 30-integrador-fase1/       ← projeto final do nível
+│   │   └── 32-integrador-fase1/       ← projeto final do nível
 │   └── trainee/ junior-1/ ... senior-3/   ← ainda "aguardando novo cliente"
 │
 ├── .devtech/          ← dados internos do sistema (sprint.json, progress.json...)
@@ -80,8 +80,10 @@ Estagiário → Trainee → Junior I → II → III → Pleno I → II → III �
 ```
 
 Cada nível tem vários mini-projetos (3 por tópico da fase de estudo correspondente do
-`AULAS.md`) — no Estagiário são 30, do "Hello World" até o projeto integrador final. O
-último projeto de cada nível é sempre o integrador — o mais importante, mistura tudo que
+`AULAS.md`, exceto tópicos onde a virada de conceito é maior — ex.: Estruturas de
+repetição tem 5, pra tornar a chegada do primeiro loop mais gradual) — no Estagiário são
+32, do "Hello World" até o projeto integrador final, mais 1 bônus de manutenção/refatoração.
+O último projeto de cada nível é sempre o integrador — o mais importante, mistura tudo que
 foi praticado na fase inteira.
 Promoções são feitas pelo Claude (seu Tech Lead e QA) quando você conclui todos os projetos.
 

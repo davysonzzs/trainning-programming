@@ -1,4 +1,4 @@
-const { montarPasso, montarSanduiche, contarPassos } = require('../sanduiche');
+const { montarPasso, montarSanduiche, resumoDoPedido } = require('../sanduiche');
 
 describe('montarPasso', () => {
   test('monta o texto do passo 1', () => {
@@ -11,33 +11,33 @@ describe('montarPasso', () => {
 });
 
 describe('montarSanduiche', () => {
-  test('monta os passos na ordem certa', () => {
-    expect(montarSanduiche(['pao', 'carne'])).toEqual([
+  test('monta os 3 passos na ordem certa', () => {
+    expect(montarSanduiche('pao', 'carne', 'maionese')).toEqual([
       'Passo 1: adicionar pao',
       'Passo 2: adicionar carne',
+      'Passo 3: adicionar maionese',
     ]);
   });
 
-  test('funciona com mais ingredientes', () => {
-    expect(montarSanduiche(['pao', 'carne', 'queijo', 'molho'])).toEqual([
-      'Passo 1: adicionar pao',
-      'Passo 2: adicionar carne',
-      'Passo 3: adicionar queijo',
-      'Passo 4: adicionar molho',
+  test('funciona com outros ingredientes', () => {
+    expect(montarSanduiche('pao integral', 'frango', 'mostarda')).toEqual([
+      'Passo 1: adicionar pao integral',
+      'Passo 2: adicionar frango',
+      'Passo 3: adicionar mostarda',
     ]);
-  });
-
-  test('array vazio retorna array vazio', () => {
-    expect(montarSanduiche([])).toEqual([]);
   });
 });
 
-describe('contarPassos', () => {
-  test('conta os ingredientes', () => {
-    expect(contarPassos(['pao', 'carne', 'queijo'])).toBe(3);
+describe('resumoDoPedido', () => {
+  test('monta o resumo do pedido', () => {
+    expect(resumoDoPedido('Ana', 'pao', 'carne', 'maionese')).toBe(
+      'Pedido de Ana: pao, carne e maionese'
+    );
   });
 
-  test('array vazio tem zero passos', () => {
-    expect(contarPassos([])).toBe(0);
+  test('funciona com outro cliente', () => {
+    expect(resumoDoPedido('Bruno', 'pao integral', 'frango', 'mostarda')).toBe(
+      'Pedido de Bruno: pao integral, frango e mostarda'
+    );
   });
 });

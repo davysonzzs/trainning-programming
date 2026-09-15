@@ -68,7 +68,7 @@ reserva.horario;     // '14h' — não mudou
 novaReserva.horario; // '16h'
 ```
 
-Esse é exatamente o cuidado que `21-cadastro-clientes-imutavel` cobra: funções que
+Esse é exatamente o cuidado que `23-cadastro-clientes-imutavel` cobra: funções que
 "atualizam" sempre devolvendo um objeto novo, nunca mexendo no que já existia.
 
 ## Tente você
@@ -86,4 +86,4 @@ e devolve um **novo** objeto com a idade `+1`, sem alterar o original
 
 ## Onde aparece nos seus projetos
 
-`19-catalogo-produtos-loja`, `20-avaliacao-funcionarios`, `21-cadastro-clientes-imutavel`.
+`21-catalogo-produtos-loja`, `22-avaliacao-funcionarios`, `23-cadastro-clientes-imutavel`.

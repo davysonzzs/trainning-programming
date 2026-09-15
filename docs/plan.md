@@ -60,7 +60,7 @@ aulas/                    ← conteúdo completo por tópico, um .md por tópico
 .github/
 └── copilot-instructions.md  ← configura Copilot como QA Ana
 projects/
-├── estagiario/         ← 30 mini-projetos (Fase 1 do AULAS.md — ver seção abaixo)
+├── estagiario/         ← 32 mini-projetos + 1 bônus (Fase 1 do AULAS.md — ver seção abaixo)
 ├── trainee/            ← aguardando (Fase 2 — ainda não construída)
 ├── junior-1/           ← aguardando (Fase 3)
 ├── junior-2/           ← aguardando (Fase 5)
@@ -115,21 +115,29 @@ tarefas) — cada projeto do lote é uma unidade só, sem sub-tarefas dentro del
 
 ## Plano: trilha completa por fase (para quando o usuário pedir a próxima)
 
-A Fase 1 (`projects/estagiario/`) foi reconstruída em **30 mini-projetos** — 3 por
-tópico da fase, do "Hello World" até o nível do antigo projeto único — porque o pulo de
-"variáveis e operadores" direto pra "implementar 5 funções de regra de negócio" era
-grande demais pra quem está começando agora. As fases 2 a 14 do `AULAS.md` ainda não
-foram reconstruídas nesse formato — os níveis correspondentes têm só um
-`README.md` placeholder ("aguardando novo cliente"). Quando o usuário pedir uma fase
-nova, repetir exatamente este processo:
+A Fase 1 (`projects/estagiario/`) foi reconstruída em **32 mini-projetos + 1 bônus** — 3
+por tópico da fase (5 no tópico de repetição, ver item 2 abaixo), do "Hello World" até o
+nível do antigo projeto único — porque o pulo de "variáveis e operadores" direto pra
+"implementar 5 funções de regra de negócio" era grande demais pra quem está começando
+agora. Numa primeira versão (2026-09), mesmo com 3-por-tópico, dois projetos ainda
+vazavam concepto de tópico futuro (`02` e o antigo `03` exigiam `for`/`while` antes do
+tópico de repetição existir) — corrigido depois de feedback real de um usuário
+iniciante; ver item 5-A abaixo pra não repetir o erro nas próximas fases. As fases 2 a
+14 do `AULAS.md` ainda não foram reconstruídas nesse formato — os níveis correspondentes
+têm só um `README.md` placeholder ("aguardando novo cliente"). Quando o usuário pedir
+uma fase nova, repetir exatamente este processo:
 
 1. **Mapear a fase → nível.** Cada fase do `AULAS.md` já tem um nível de carreira
    correspondente na tabela `LEVELS` de `core/dados.js` (campo `fase`) — ex.: Fase 2 →
    Trainee, Fase 3 → Junior I. Usar a pasta `projects/<folder-do-nivel>/`.
 2. **Contar os tópicos da fase** no `AULAS.md` (cada linha `- Tópico: ...` sob o
-   `## FASE N`) e multiplicar por 3 — esse é o total de mini-projetos daquele nível.
-   Fases maiores (ex.: Fase 6 — React, com 14 tópicos) geram bem mais projetos que a
-   Fase 1; é esperado, não é bug.
+   `## FASE N`) e multiplicar por 3 — esse é o piso do total de mini-projetos daquele
+   nível. Fases maiores (ex.: Fase 6 — React, com 14 tópicos) geram bem mais projetos que
+   a Fase 1; é esperado, não é bug. **Exceção:** se um tópico específico for o primeiro a
+   introduzir um conceito estrutural grande (ex.: o primeiro loop, a primeira classe, o
+   primeiro `async/await`), considere 4 ou 5 projetos só pra ele em vez de 3 — foi o caso
+   de "Estruturas de repetição" na Fase 1, que virou 5 depois de feedback de um usuário
+   real achando a virada abrupta demais.
 3. **Numerar linearmente** `01` a `NN` dentro da pasta do nível (mesma decisão já tomada
    pro usuário na Fase 1 — sem subpasta por tópico).
 4. **Nomear as pastas como projeto real da empresa**, nunca com nome de tópico
@@ -137,9 +145,22 @@ nova, repetir exatamente este processo:
    de cada um é que carrega o contexto de negócio (bug fix / feature / refactor pedido por
    um cliente/setor fictício da DevTech) e a linha **`Tópico da trilha:`** dizendo qual
    tópico da fase aquele projeto pratica e a posição dele na trilha (`(2/3)` etc).
-5. **Progressão dentro de cada trio de tópico:** projeto 1 introduz o conceito isolado
-   com a menor superfície possível; projeto 2 aprofunda; projeto 3 mistura com o que já
-   foi visto nos tópicos anteriores da mesma fase (nunca com tópicos de fases futuras).
+5. **Progressão dentro de cada trio (ou quinteto) de tópico:** o primeiro projeto
+   introduz o conceito isolado com a menor superfície possível; os do meio aprofundam; o
+   último mistura com o que já foi visto nos tópicos anteriores da mesma fase (nunca com
+   tópicos de fases futuras).
+5-A. **Auditar vazamento de conceito antes de considerar o tópico pronto.** Pra cada
+   função pedida num README, pergunte "dá pra implementar isso só com o que os tópicos
+   *já vistos* ensinaram?" — não confie só no rótulo do tópico. É fácil escrever um README
+   de "sequência de passos" cuja especificação (ex.: "processe uma lista de tamanho
+   variável") só é resolvível de verdade com um loop, mesmo que a dica diga "não é
+   obrigatório usar". Se a especificação força um array/objeto de tamanho variável antes
+   do tópico de Arrays, ou uma condição de repetição antes do tópico de repetição, ou uma
+   chamada recursiva antes do tópico de Recursão — é vazamento, redesenhe a função (ex.:
+   trocar array de tamanho variável por parâmetros fixos) ou mova o problema pro tópico
+   certo. Isso já causou dois projetos com `for`/`while` escondido na Fase 1 antes do
+   tópico de repetição existir — pego só quando um usuário iniciante de verdade tentou
+   os projetos em ordem.
 6. **Criar `aulas/fase-NN-slug/` com um `.md` por tópico** (mesmo padrão da Fase 1 em
    `aulas/fase-01-fundamentos-de-programacao/`) — documentação de verdade, não lista de
    bullets: pra cada tópico, uma explicação acessível pra quem ainda não viu o assunto,
@@ -159,7 +180,7 @@ nova, repetir exatamente este processo:
    das funções → Como testar → Dicas → Tarefas sugeridas para o Sprint (bloco
    ` ```add ...``` `, uma linha por tarefa — popula o backlog sozinho via
    `extrairTarefas()`). A seção de Dicas abre com uma citação (`>`) linkando pro arquivo
-   do tópico correspondente em `aulas/fase-NN.../` (ver os 30 READMEs do Estagiário como
+   do tópico correspondente em `aulas/fase-NN.../` (ver os 32 READMEs do Estagiário como
    referência do formato exato do link) e, pra cada função, um hint — nunca a resposta
    pronta, mas com um exemplo **genérico** (domínio diferente do exercício) sempre que o
    conceito novo não tiver sintaxe óbvia só pela descrição em prosa.

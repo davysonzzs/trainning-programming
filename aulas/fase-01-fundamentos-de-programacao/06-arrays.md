@@ -52,7 +52,7 @@ const soAssuntos    = chamados.map(c => c.assunto); // ['login', 'cobranca', 'bu
 ```
 
 Combinar `.filter()` + `.reduce()` (filtrar primeiro, somar depois) é exatamente o tipo
-de encadeamento que `17-relatorio-estatisticas-vendas` e `18-processador-pedidos`
+de encadeamento que `19-relatorio-estatisticas-vendas` e `20-processador-pedidos`
 esperam de você.
 
 ## Tente você
@@ -69,5 +69,5 @@ separadas, para ver cada resultado no meio do caminho.
 
 ## Onde aparece nos seus projetos
 
-`16-sistema-lista-compras-mercado`, `17-relatorio-estatisticas-vendas`,
-`18-processador-pedidos`.
+`18-sistema-lista-compras-mercado`, `19-relatorio-estatisticas-vendas`,
+`20-processador-pedidos`.

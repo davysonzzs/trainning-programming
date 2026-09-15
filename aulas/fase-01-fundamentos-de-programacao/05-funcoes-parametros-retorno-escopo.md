@@ -67,7 +67,7 @@ function calcularTotalComFrete(valorProdutos, peso) {
 ```
 
 Reaproveitar uma função pequena dentro de outra maior é exatamente o que
-`13-modulo-utilitarios-financeiros` e `15-calculadora-financeira` pedem — cada função
+`15-modulo-utilitarios-financeiros` e `17-calculadora-financeira` pedem — cada função
 resolve uma parte, e a função "de cima" só organiza a ordem em que elas são chamadas.
 
 ## Tente você
@@ -84,5 +84,5 @@ não muda o saldo do outro.
 
 ## Onde aparece nos seus projetos
 
-`13-modulo-utilitarios-financeiros`, `14-sistema-contadores-independentes` (o exemplo de
-closure acima é bem próximo do que esse projeto pede), `15-calculadora-financeira`.
+`15-modulo-utilitarios-financeiros`, `16-sistema-contadores-independentes` (o exemplo de
+closure acima é bem próximo do que esse projeto pede), `17-calculadora-financeira`.

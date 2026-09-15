@@ -66,7 +66,7 @@ existeProtocolo(1500); // false
 
 Repare que a única diferença pro `buscaBinaria` genérico acima é **o que** está sendo
 comparado — o algoritmo em si não muda. É essa mesma ideia, aplicada a produtos, que
-`28-busca-linear-estoque` e `29-motor-busca-rapida-catalogo` pedem.
+`30-busca-linear-estoque` e `31-motor-busca-rapida-catalogo` pedem.
 
 ## Tente você
 
@@ -82,7 +82,7 @@ Simule `buscaBinaria([2, 5, 8, 12, 16, 23, 38, 45], 23)` no papel: anote `inicio
 
 ## Onde aparece nos seus projetos
 
-`28-busca-linear-estoque`, `29-motor-busca-rapida-catalogo` — e o `30-integrador-fase1`
+`30-busca-linear-estoque`, `31-motor-busca-rapida-catalogo` — e o `32-integrador-fase1`
 fecha a fase misturando tudo que veio antes dele. O bônus
-`31-refatoracao-modulo-descontos` pratica ler e consertar código que já existe, em vez
+`33-refatoracao-modulo-descontos` pratica ler e consertar código que já existe, em vez
 de criar do zero — a outra metade do trabalho real de um dev.

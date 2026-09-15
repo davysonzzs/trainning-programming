@@ -87,5 +87,5 @@ exemplo) — é o mesmo raciocínio de "descer" na estrutura.
 
 ## Onde aparece nos seus projetos
 
-`22-motor-calculo-combinatorio`, `23-consolidador-recursivo-pedidos`,
-`24-simulador-crescimento-populacional`.
+`24-motor-calculo-combinatorio`, `25-consolidador-recursivo-pedidos`,
+`26-simulador-crescimento-populacional`.
