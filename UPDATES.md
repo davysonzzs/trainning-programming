@@ -1,5 +1,49 @@
 # Atualizações
 
+## 2026-09-15 (2)
+- 📖 **Roteiro (`AULAS.md`) ampliado** com disciplinas que ainda não apareciam
+  explicitamente na trilha, pedidas pelo usuário — inseridas dentro das 14 fases já
+  existentes (nenhuma fase nova, nenhum projeto do Estagiário mudou):
+  - **POO explícita** — Fase 2 ganhou os 4 pilares da POO em JS, herança com
+    `extends`/`super`/campos privados, e composição vs. herança
+  - **Qualidade de software e carreira** — Fase 3 ganhou mentalidade de QA/bug report,
+    currículo e portfólio de dev júnior, GitHub/LinkedIn como vitrine, e entrevista
+    técnica júnior
+  - **UX/UI** — Fase 4 ganhou heurísticas de usabilidade, hierarquia visual/tipografia,
+    prototipação (wireframes) e design systems
+  - **Análise de sistemas** — Fase 8 ganhou modelagem de dados (DER/normalização) e a
+    Fase 10 ganhou levantamento de requisitos (user stories) e UML (visão geral)
+  - **Gestão de startups** — Fase 14 (Sênior, já era sobre liderança/decisão) ganhou
+    mentalidade de produto/MVP, métricas de produto (funil, retenção, LTV/CAC) e lançar
+    um side project
+  - Programação web e banco de dados já tinham cobertura própria (Fases 4/5/7 e 8) —
+    sem mudança de estrutura, só reforço pontual
+
+## 2026-09-15
+- 🐛 **Vazamento de conceito corrigido**: `02-guia-preparo-pedido` e o antigo
+  `03-troco-moedas` exigiam `for`/`while` pra passar nos testes — antes de o tópico de
+  Estruturas de repetição existir. `02` foi redesenhado pra receber sempre 3 ingredientes
+  fixos (sequência pura, sem loop); o problema do troco virou `13-troco-caixa-automatico`,
+  agora dentro do próprio tópico de repetição, onde faz sentido de verdade
+- ✨ Novo projeto `03-recibo-de-venda` no lugar do antigo `03` — mesma posição (Lógica de
+  programação, 3/3), conteúdo 100% sequencial (subtotal → desconto → total)
+- ✨ **Tópico de Estruturas de repetição passou de 3 pra 5 projetos** — a virada de "sem
+  loop" pra "com loop" é o maior salto conceitual da Fase 1, e 3 projetos jogavam o
+  aprendiz direto num `for` com acumulador. Agora: `10-gerador-crachas-evento` (o `for`
+  mais simples que existe, sem acumulador), `11-gerador-tabela-precos` (for + acumulador),
+  `12-monitor-eventos-sistema` (while/do-while), `13-troco-caixa-automatico` (while dentro
+  de for, aplicação real), `14-gerador-relatorio-visual` (loops aninhados + strings)
+- 📖 `aulas/.../04-estruturas-de-repeticao.md` bem mais destrinchado: tabela passo a passo
+  de como o `for` executa, explicação de acumulador, loops aninhados e loops em strings
+  com exemplo próprio de cada um (antes era só um resumo curto)
+- 🔨 **Todos os projetos de `11` em diante foram renumerados** (`10-31` → `11-33`) pra
+  abrir espaço pros 2 novos projetos do tópico de repetição — nenhum conteúdo de projeto
+  de `15` em diante mudou, só o número da pasta e as referências cruzadas nos `aulas/*.md`
+  e nos docs da raiz. Total do Estagiário: de 31 pra **33** (32 numerados + o bônus de
+  refatoração)
+- 🐛 Posição `(x/y)` do tópico de Algoritmos de busca corrigida de `(1/3)`/`(2/3)` pra
+  `(1/2)`/`(2/2)` — o tópico sempre teve só 2 projetos, o rótulo é que estava errado
+
 ## 2026-09-14 (3)
 - 📖 **Trilha de Estudos virou documentação de verdade.** A Fase 1 (Estagiário) ganhou
   um `.md` por tópico em `aulas/fase-01-fundamentos-de-programacao/` — explicação
@@ -57,7 +101,7 @@
 - ✨ Novos comandos `outro` / `voltar` no Painel de Sprint: enquanto uma tarefa espera revisão do QA (pode demorar), dá pra adiantar outro projeto da fila sem perder o progresso do atual — no máximo 2 projetos "em jogo" ao mesmo tempo
 - ✨ Se os dois projetos travarem no QA ao mesmo tempo, o painel avisa e sugere ir pra Trilha de Estudos em vez de ficar esperando parado
 - ✨ `concluir` agora volta automaticamente pro projeto que ficou esperando (se tinha um), em vez de puxar um terceiro novo da fila
-- 🔨 Novo projeto bônus `31-refatoracao-modulo-descontos` (Estagiário): diferente dos outros 30, o código já existe — malfeito, duplicado e com um bug real escondido (causado exatamente pela duplicação) — a tarefa é consertar e refatorar sem quebrar os testes, praticando manutenção em vez de criação do zero
+- 🔨 Novo projeto bônus `33-refatoracao-modulo-descontos` (Estagiário): diferente dos outros 30, o código já existe — malfeito, duplicado e com um bug real escondido (causado exatamente pela duplicação) — a tarefa é consertar e refatorar sem quebrar os testes, praticando manutenção em vez de criação do zero
 - ✨ **Daily Standup**: na primeira vez que abre o simulador no dia, pergunta o que fez ontem / vai fazer hoje / algum bloqueio — não trava (Esc pula), fica registrado e o último standup aparece na Ficha do Desenvolvedor `[3]`
 - ✨ **1:1 com o Tech Lead**: a cada 3 projetos entregues, uma tela resume XP/avisos/atrasos/streak com uma leitura qualitativa do Lead — igual uma review de performance de verdade
 - 🔨 **Refatoração grande**: `devtech.js` (2157 linhas) quebrado em `scripts/core/` (helpers compartilhados: cores, dados, lint, gitflow, texto) e `scripts/telas/` (um arquivo por tela) — melhora manutenção, sem mudar nenhum comportamento pro jogador

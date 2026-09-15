@@ -42,11 +42,12 @@ function fazerCafe() {
 }
 ```
 
-Quando o mesmo passo se repete para vários itens de uma lista (por exemplo, "para cada
-ingrediente, monte um passo"), você usa um **laço de repetição** (loop) — o Tópico 4
-aprofunda isso, mas o padrão básico já serve desde já:
-`for (let i = 0; i < lista.length; i++) { ... }` roda o bloco uma vez para cada posição
-da lista.
+Enquanto o número de passos for pequeno e fixo (3 ingredientes, sempre 3), você escreve
+cada passo na sequência certa, um por um — é exatamente isso que os projetos deste
+tópico pedem. Quando o número de passos só é conhecido na hora de rodar o programa
+(uma lista de ingredientes que muda de tamanho a cada pedido, por exemplo), escrever
+"na mão" deixa de funcionar — aí entra a **estrutura de repetição** (loop), que o
+Tópico 4 explica com calma. Não precisa se preocupar com isso ainda.
 
 ## Na prática da DevTech
 
@@ -64,7 +65,7 @@ Antes de escrever a função, a primeira pergunta é sempre: **a ordem importa?*
 — validar antes de criar evita registrar um plano com dado inválido, e liberar acesso
 antes de confirmar o pagamento (se houvesse essa etapa) seria um bug de negócio, não só
 de código. Pensar a sequência certa *antes* de programar é o que os projetos
-`01-mensagens-onboarding`, `02-guia-preparo-pedido` e `03-troco-moedas` pedem pra você
+`01-mensagens-onboarding`, `02-guia-preparo-pedido` e `03-recibo-de-venda` pedem pra você
 praticar.
 
 ## Tente você
@@ -82,5 +83,5 @@ o raciocínio antes de complicar.
 
 ## Onde aparece nos seus projetos
 
-`01-mensagens-onboarding`, `02-guia-preparo-pedido` e `03-troco-moedas` — sequência de
+`01-mensagens-onboarding`, `02-guia-preparo-pedido` e `03-recibo-de-venda` — sequência de
 passos certos, sem estrutura de decisão ainda.

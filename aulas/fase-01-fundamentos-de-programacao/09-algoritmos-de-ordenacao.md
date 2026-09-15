@@ -60,8 +60,8 @@ function indiceDoMaisPrioritario(lista, apartirDe) {
 
 Repare: é o **mesmo algoritmo** de `indiceDoMenor` acima, só que comparando
 `.prioridade` de um objeto em vez de comparar números soltos — essa é a adaptação que
-`27-ranking-personalizavel-funcionarios` pede depois de `25-ordenador-fila-atendimento`
-e `26-otimizador-ordenacao-estoque` já terem trabalhado com números puros.
+`29-ranking-personalizavel-funcionarios` pede depois de `27-ordenador-fila-atendimento`
+e `28-otimizador-ordenacao-estoque` já terem trabalhado com números puros.
 
 ## Tente você
 
@@ -76,5 +76,5 @@ anote o estado do array depois de cada troca.
 
 ## Onde aparece nos seus projetos
 
-`25-ordenador-fila-atendimento`, `26-otimizador-ordenacao-estoque`,
-`27-ranking-personalizavel-funcionarios`.
+`27-ordenador-fila-atendimento`, `28-otimizador-ordenacao-estoque`,
+`29-ranking-personalizavel-funcionarios`.

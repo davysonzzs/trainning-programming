@@ -36,8 +36,8 @@ Pressione Esc para voltar ao menu.
 ## 3. Veja o projeto disponível
 
 No menu, acesse **[4] Quadro de Projetos**.
-Você verá os projetos do nível Estagiário, todos como `○ PENDENTE`, numerados — são 30
-mini-projetos, cada um bem pequeno, do "Hello World" até o projeto integrador final.
+Você verá os projetos do nível Estagiário, todos como `○ PENDENTE`, numerados — são 32
+mini-projetos (+ 1 bônus), cada um bem pequeno, do "Hello World" até o projeto integrador final.
 O primeiro é `01  ○  01-mensagens-onboarding`.
 
 Leia o README sem sair do simulador: digite o número do projeto e Enter
@@ -308,24 +308,27 @@ Exemplos de perguntas úteis:
 
 ---
 
-## 11. Faça os 30 projetos
+## 11. Faça os 32 projetos
 
 ```
-01 → 02 → 03 → ... → 29 → 30
+01 → 02 → 03 → ... → 31 → 32
 ```
 
 São 3 mini-projetos pra cada um dos 10 tópicos da Fase 1 (lógica, variáveis,
-condicionais, loops, funções, arrays, objetos, recursão, ordenação, busca) —
-os primeiros são bem curtos, e a dificuldade cresce aos poucos. O README de
-cada um diz, na linha **"Tópico da trilha"**, qual assunto ele pratica.
-O projeto `30-integrador-fase1` usa conceitos de todos os anteriores.
+condicionais, loops, funções, arrays, objetos, recursão, ordenação, busca) — exceto
+**Estruturas de repetição**, que tem 5: é o maior salto conceitual da fase (a primeira
+vez que "repetir uma ação" deixa de ser escrever a mesma linha à mão), então fica
+dividido em passos menores. Os primeiros projetos são bem curtos, e a dificuldade cresce
+aos poucos — nenhum projeto pede um conceito que o tópico dele ainda não ensinou. O
+README de cada um diz, na linha **"Tópico da trilha"**, qual assunto ele pratica.
+O projeto `32-integrador-fase1` usa conceitos de todos os anteriores.
 Quando todos estiverem `[ENTREGUE]`, você terá XP suficiente para o próximo nível.
 
-**Bônus — `31-refatoracao-modulo-descontos`:** os 30 anteriores são todos "criar do
+**Bônus — `33-refatoracao-modulo-descontos`:** os 32 anteriores são todos "criar do
 zero"; esse é diferente — o código **já existe** (funcionando, mas malfeito e com um
 bug escondido) e a tarefa é ler, entender, consertar e refatorar sem quebrar o que já
 funciona. É metade do trabalho real de um dev: manutenção, não só criação. Vale os
-mesmos XP e entra na fila normalmente depois do `30`.
+mesmos XP e entra na fila normalmente depois do `32`.
 
 ---
 

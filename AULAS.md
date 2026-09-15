@@ -25,7 +25,7 @@
 ## FASE 1 — Fundamentos de Programação
 
 Nível: **Estagiário**. Do "Hello World" até ordenação e busca — os 10 tópicos que os
-31 projetos de `projects/estagiario/` praticam. Cada um é um documento próprio, em
+33 projetos de `projects/estagiario/` praticam. Cada um é um documento próprio, em
 [`aulas/fase-01-fundamentos-de-programacao/`](aulas/fase-01-fundamentos-de-programacao/README.md):
 
 1. [Lógica de programação: algoritmos e pseudocódigo](aulas/fase-01-fundamentos-de-programacao/01-logica-algoritmos-pseudocodigo.md)
@@ -50,11 +50,15 @@ Nível: **Estagiário**. Do "Hello World" até ordenação e busca — os 10 tó
 - Módulos: import e export
 - Promises: criação, then e catch
 - Async/await e tratamento de erros assíncronos
-- Classes, herança e encapsulamento em JavaScript
 - Closures, escopo léxico e hoisting
 - Event Loop, call stack e microtasks
 - Manipulação de erros: try, catch, throw, Error
 - Iteradores, generators e Symbol
+- Programação Orientada a Objetos em JS: os 4 pilares (abstração, encapsulamento,
+  herança, polimorfismo) aplicados com `class`
+- Herança com `extends`/`super`, campos privados (`#campo`), getters/setters
+- Composição vs. herança: quando montar objetos a partir de peças em vez de estender uma
+  classe pai
 
 ---
 
@@ -68,6 +72,12 @@ Nível: **Estagiário**. Do "Hello World" até ordenação e busca — os 10 tó
 - Debugging: breakpoints, DevTools e Node inspector
 - Testes unitários com Jest: estrutura e primeiros testes
 - Testes: mocks, spies e cobertura de código
+- Qualidade de software: o que é um bug, como escrever um bom relatório de bug e
+  mentalidade de QA
+- Planejamento de carreira: currículo e portfólio de dev júnior — o que um time técnico
+  avalia num candidato
+- GitHub e LinkedIn como vitrine profissional: perfil, README de projeto, o que destacar
+- Entrevista técnica júnior: o que costuma cair e como praticar
 
 ---
 
@@ -81,6 +91,10 @@ Nível: **Estagiário**. Do "Hello World" até ordenação e busca — os 10 tó
 - Design responsivo e media queries
 - Animações e transições CSS
 - Variáveis CSS e temas
+- Fundamentos de UX: heurísticas de usabilidade e fluxo do usuário
+- Fundamentos de UI: hierarquia visual, tipografia, cor e contraste
+- Prototipação: wireframes e mockups antes de codar (Figma ou papel)
+- Design systems: tokens, componentes reutilizáveis e consistência visual
 
 ---
 
@@ -132,6 +146,7 @@ Nível: **Estagiário**. Do "Hello World" até ordenação e busca — os 10 tó
 
 ## FASE 8 — Banco de Dados
 
+- Modelagem de dados: Diagrama Entidade-Relacionamento (DER) e normalização
 - SQL: fundamentos, SELECT, INSERT, UPDATE, DELETE
 - SQL: JOINs, subqueries e aggregations
 - PostgreSQL: instalação, configuração e psql
@@ -161,6 +176,8 @@ Nível: **Estagiário**. Do "Hello World" até ordenação e busca — os 10 tó
 
 ## FASE 10 — Arquitetura e Boas Práticas
 
+- Levantamento de requisitos: user stories, critérios de aceite e escopo
+- Modelagem com UML (visão geral): diagrama de classes e diagrama de sequência
 - Clean Code: nomes, funções e comentários
 - SOLID: os 5 princípios com exemplos em JavaScript
 - Design Patterns: Factory, Singleton, Observer e Strategy
@@ -219,3 +236,6 @@ Nível: **Estagiário**. Do "Hello World" até ordenação e busca — os 10 tó
 - Débito técnico: identificação, priorização e pagamento
 - Comunicação técnica: docs, RFCs e apresentações
 - Segurança em nível de sistema e compliance
+- Mentalidade de produto: MVP, validação de hipóteses e feedback de usuário
+- Métricas de produto para devs: funil, retenção, LTV/CAC (visão geral)
+- Do projeto pessoal ao primeiro usuário: lançando um side project / startup enxuta

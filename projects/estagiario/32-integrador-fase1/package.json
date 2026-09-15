@@ -1,0 +1,11 @@
+{
+  "name": "32-integrador-fase1",
+  "version": "1.0.0",
+  "description": "DevTech Sistemas — Estagiario (Projeto Final)",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
